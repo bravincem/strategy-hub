@@ -2,626 +2,588 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Deriv Strategy Hub</title>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-
-:root{
---bg:#050b16;
---panel:#101b2d;
---line:#233653;
---blue:#278cff;
---cyan:#54dfff;
---text:#f4f7fb;
---muted:#9baac0;
---gold:#f4c85d;
---green:#62ddb0;
---purple:#b894ff;
-}
-
+*{box-sizing:border-box}
 body{
-font-family:Arial,Helvetica,sans-serif;
-background:var(--bg);
-color:var(--text);
-min-height:100vh;
-padding-bottom:72px
+ margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033
 }
-
 .top{
-height:62px;
-background:#f7f9fc;
-color:#07101e;
-display:flex;
-align-items:center;
-justify-content:space-between;
-padding:0 14px;
-position:sticky;
-top:0;
-z-index:20
+ height:60px;background:white;display:flex;align-items:center;
+ justify-content:space-between;padding:0 15px;border-bottom:1px solid #ddd
 }
-
-.brand{
-display:flex;
-align-items:center;
-gap:10px
+.brand{font-weight:bold;font-size:17px}
+button{
+ border:0;border-radius:9px;padding:10px 14px;font-weight:bold;
+ cursor:pointer
 }
-
-.menu{
-font-size:25px;
-color:#555
-}
-
-.logo{
-width:44px;
-height:44px;
-border-radius:50%;
-display:grid;
-place-items:center;
-background:#dffff9;
-border:2px solid #b9eee6;
-font-size:21px
-}
-
-.top-actions{
-display:flex;
-gap:8px
-}
-
-.btn{
-border:0;
-border-radius:7px;
-padding:10px 15px;
-font-weight:800;
-color:#fff;
-background:linear-gradient(135deg,#287ee7,#163b88);
-font-size:14px
-}
+.login{background:#111827;color:white}
+.token{background:#eef2f7;margin-right:7px}
 
 .nav{
-height:58px;
-background:#09152a;
-border-bottom:1px solid #1d3353;
-display:flex;
-align-items:stretch;
-overflow-x:auto;
-white-space:nowrap;
-position:sticky;
-top:62px;
-z-index:19
+ background:#111827;display:flex;gap:5px;padding:8px;overflow:auto
+}
+.nav button{
+ background:transparent;color:#cbd5e1;white-space:nowrap
+}
+.nav button.active{background:white;color:#111827}
+
+.container{
+ max-width:1000px;margin:auto;padding:20px 15px 80px
+}
+.hero{text-align:center;padding:10px 0 20px}
+.hero h1{margin:5px;font-size:27px}
+.hero p{color:#667085}
+
+.title{
+ font-size:13px;font-weight:bold;color:#667085;margin:15px 0 10px
 }
 
-.nav::-webkit-scrollbar{
-display:none
+.cards{
+ display:grid;grid-template-columns:repeat(2,1fr);gap:12px
 }
-
-.nav-item{
-min-width:max-content;
-padding:0 17px;
-display:flex;
-align-items:center;
-gap:9px;
-color:#e9eef7;
-font-weight:800;
-font-size:14px;
-border-right:1px solid #142846
+.card{
+ background:white;border:1px solid #e5e7eb;border-radius:14px;
+ padding:17px;cursor:pointer
 }
+.card h3{margin:0 0 7px}
+.card p{margin:0;color:#667085;font-size:13px}
 
-.nav-item span{
-font-size:21px;
-color:#ff6f64
-}
-
-.nav-item.active{
-background:#143f8b
-}
-
-.hero{
-text-align:center;
-padding:34px 18px 28px;
-background:
-radial-gradient(
-circle at 50% 15%,
-#102c52 0,
-#071223 42%,
-#050b16 80%
-)
-}
-
-.hero h1{
-font-size:29px;
-color:var(--cyan);
-margin-bottom:12px
-}
-
-.hero p{
-color:#9ca9bd;
-font-size:15px;
-font-style:italic
-}
-
-.section-title{
-display:flex;
-align-items:center;
-gap:14px;
-margin:0 18px 18px;
-color:#9fb2cb;
-font-size:11px;
-letter-spacing:3px;
-font-weight:800
-}
-
-.section-title:before,
-.section-title:after{
-content:"";
-height:1px;
-background:#27466e;
-flex:1
+.panel{
+ background:white;border:1px solid #e5e7eb;border-radius:15px;
+ padding:16px;margin-top:15px
 }
 
 .grid{
-display:grid;
-grid-template-columns:repeat(2,minmax(0,1fr));
-gap:14px;
-padding:0 18px
+ display:grid;grid-template-columns:repeat(2,1fr);gap:12px
+}
+label{
+ display:block;font-size:12px;font-weight:bold;color:#667085;margin-bottom:6px
+}
+select,input{
+ width:100%;padding:11px;border:1px solid #d5dbe5;
+ border-radius:8px;background:white
 }
 
-.card{
-min-height:210px;
-background:linear-gradient(160deg,#14243a,#0c1626);
-border:1px solid #2a3d59;
-border-radius:22px;
-padding:24px 22px;
-box-shadow:0 8px 24px rgba(0,0,0,.22)
+.actions{
+ display:flex;gap:8px;flex-wrap:wrap;margin-top:15px
 }
+.start{background:#111827;color:white}
+.stop{background:#fee2e2;color:#991b1b}
+.gray{background:#eef2f7}
 
-.icon{
-width:60px;
-height:60px;
-border-radius:18px;
-display:grid;
-place-items:center;
-font-size:30px;
-margin-bottom:25px
+.stats{
+ display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:15px
 }
+.stat{
+ background:#f8fafc;padding:12px;border-radius:10px
+}
+.stat small{display:block;color:#667085}
+.stat strong{font-size:19px}
 
-.gold{
-background:#3b3322;
-color:var(--gold)
+.log{
+ max-height:240px;overflow:auto;margin-top:15px
 }
-
-.blue{
-background:#0d3048;
-color:#61c8ff
+.trade{
+ display:flex;justify-content:space-between;
+ padding:10px 3px;border-bottom:1px solid #eee;font-size:13px
 }
-
-.green{
-background:#0d3a32;
-color:#67dfbd
-}
-
-.purple{
-background:#302449;
-color:#c09cff
-}
-
-.card h2{
-font-size:17px;
-margin-bottom:12px
-}
-
-.card p{
-color:#9aaac0;
-font-size:13px;
-line-height:1.55;
-min-height:42px
-}
-
-.card a{
-display:flex;
-justify-content:space-between;
-align-items:center;
-border-top:1px solid #29405e;
-margin-top:16px;
-padding-top:14px;
-text-decoration:none;
-font-weight:800;
-font-size:13px
-}
-
-.goldcard a{
-color:var(--gold)
-}
-
-.bluecard a{
-color:#62cfff
-}
-
-.greencard a{
-color:var(--green)
-}
-
-.purplecard a{
-color:var(--purple)
-}
+.win{color:#15803d;font-weight:bold}
+.loss{color:#b91c1c;font-weight:bold}
 
 .notice{
-margin:22px 18px 0;
-padding:13px 15px;
-border:1px solid #30435e;
-border-radius:13px;
-background:#0c1728;
-color:#a9b8cb;
-font-size:12px
+ margin-top:15px;padding:11px;border-radius:9px;
+ background:#fff7ed;color:#9a3412;font-size:12px
 }
 
-.ai{
-position:fixed;
-right:17px;
-bottom:79px;
-width:67px;
-height:67px;
-border-radius:50%;
-background:
-radial-gradient(
-circle at 35% 25%,
-#d0a7ff,
-#7545a5 65%,
-#42265f
-);
-display:grid;
-place-items:center;
-font-size:24px;
-font-weight:900;
-box-shadow:0 0 25px #7545a566;
-z-index:30
-}
-
-.ai:after{
-content:"";
-position:absolute;
-right:4px;
-top:4px;
-width:9px;
-height:9px;
-border-radius:50%;
-background:#26d987;
-border:2px solid #132035
-}
+.hidden{display:none}
 
 .bottom{
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-height:70px;
-background:#f5f7f8;
-color:#182234;
-display:grid;
-grid-template-columns:1fr 1.6fr 1.2fr;
-z-index:40;
-border-top:1px solid #c9d1dc
+ position:fixed;bottom:0;left:0;right:0;background:#111827;
+ color:white;display:flex;justify-content:center;gap:25px;
+ padding:11px;font-size:12px
 }
 
-.run{
-background:linear-gradient(135deg,#0d5fc4,#1b8df5);
-color:white;
-display:flex;
-align-items:center;
-justify-content:center;
-gap:8px;
-font-weight:900
-}
-
-.exec{
-padding:11px 14px;
-background:#edf8f1
-}
-
-.exec small{
-display:block;
-color:#8995a3;
-font-weight:700;
-font-size:10px
-}
-
-.exec b{
-font-size:12px
-}
-
-.open{
-display:flex;
-align-items:center;
-justify-content:center;
-font-weight:800;
-font-size:13px
-}
-
-@media(max-width:380px){
-
-.grid{
-gap:10px;
-padding:0 12px
-}
-
-.card{
-padding:18px 15px;
-min-height:195px
-}
-
-.icon{
-width:52px;
-height:52px;
-font-size:25px;
-margin-bottom:20px
-}
-
-.card h2{
-font-size:15px
-}
-
-.card p{
-font-size:12px
-}
-
-.nav-item{
-padding:0 13px
-}
-
+@media(max-width:600px){
+ .grid{grid-template-columns:1fr}
+ .stats{grid-template-columns:repeat(2,1fr)}
+ .hero h1{font-size:23px}
 }
 </style>
 </head>
 
 <body>
 
-<header class="top">
-
-<div class="brand">
-
-<div class="menu">
-☰
+<div class="top">
+ <div class="brand">☰ &nbsp; Deriv Strategy Hub</div>
+ <div>
+  <button class="token" onclick="demo()">API Token</button>
+  <button class="login" onclick="demo()">Log in</button>
+ </div>
 </div>
 
-<div class="logo">
-💬
+<div class="nav">
+ <button class="active" onclick="page('dashboard',this)">Dashboard</button>
+ <button onclick="page('builder',this)">Bot Builder</button>
+ <button onclick="page('free',this)">Free Bots</button>
+ <button onclick="page('signals',this)">AI Signals</button>
+ <button onclick="page('results',this)">Results</button>
+</div>
+
+<div class="container">
+
+<!-- DASHBOARD -->
+
+<section id="dashboard">
+
+<div class="hero">
+ <h1>Good afternoon 👋</h1>
+ <p>Build, test and manage your Deriv strategies.</p>
+</div>
+
+<div class="title">QUICK ACTIONS</div>
+
+<div class="cards">
+
+<div class="card" onclick="openBuilder()">
+<h3>⚡ Bot Builder</h3>
+<p>Create and test a strategy.</p>
+</div>
+
+<div class="card" onclick="openFree()">
+<h3>🤖 Free Bots</h3>
+<p>Ready-made demo strategies.</p>
+</div>
+
+<div class="card" onclick="openBuilder();loadPreset('Over 1')">
+<h3>▶ Quick Bot</h3>
+<p>Load the 1-tick preset.</p>
+</div>
+
+<div class="card" onclick="backtest()">
+<h3>📊 Backtest</h3>
+<p>Run 100 simulated trades.</p>
 </div>
 
 </div>
 
-<div class="top-actions">
-
-<button class="btn" onclick="login()">
-Log in
-</button>
-
-<button class="btn" onclick="token()">
-API Token
-</button>
-
-</div>
-
-</header>
-
-
-<nav class="nav">
-
-<div class="nav-item active">
-<span>⌂</span>
-Dashboard
-</div>
-
-<div class="nav-item">
-<span>⚙</span>
-Bot Builder
-</div>
-
-<div class="nav-item">
-<span>🤖</span>
-Free Bots
-</div>
-
-<div class="nav-item">
-<span>✦</span>
-AI Signals
-</div>
-
-<div class="nav-item">
-<span>📊</span>
-Results
-</div>
-
-</nav>
-
-
-<section class="hero">
-
-<h1 id="greeting">
-Good afternoon
-</h1>
-
-<p>
-"The market rewards patience and punishes impatience."
+<div class="panel">
+<h3>Strategy Hub</h3>
+<p style="color:#667085">
+Your Bot Builder is ready for demo testing and backtesting.
 </p>
+
+<div class="notice">
+⚠️ Demo mode only. Martingale can increase losses quickly.
+This simulator does not place real Deriv trades.
+</div>
+</div>
 
 </section>
 
 
-<div class="section-title">
-QUICK ACTIONS
+<!-- BOT BUILDER -->
+
+<section id="builder" class="hidden">
+
+<div class="hero">
+<h1>⚡ Bot Builder</h1>
+<p>Fast 1-tick strategy simulator</p>
 </div>
 
+<div class="panel">
 
-<main class="grid">
+<div class="grid">
 
-
-<article class="card goldcard">
-
-<div class="icon gold">
-♕
+<div>
+<label>MARKET</label>
+<select id="market">
+<option>Volatility 100 (1s)</option>
+<option>Volatility 25 (1s)</option>
+<option>Volatility 50 (1s)</option>
+<option>Volatility 75 (1s)</option>
+</select>
 </div>
 
-<h2>
-Premium Bots
-</h2>
-
-<p>
-Explore premium trading strategies.
-</p>
-
-<a href="#" onclick="return action('Premium Bots')">
-Explore bots
-<b>↗</b>
-</a>
-
-</article>
-
-
-<article class="card bluecard">
-
-<div class="icon blue">
-⇧
+<div>
+<label>CONTRACT</label>
+<select id="contract">
+<option>Over 1</option>
+<option>Under 8</option>
+<option>Rise</option>
+<option>Fall</option>
+</select>
 </div>
 
-<h2>
-Upload Bot
-</h2>
-
-<p>
-Import an XML bot from your device.
-</p>
-
-<a href="#" onclick="return uploadBot()">
-Import XML
-<b>↗</b>
-</a>
-
-</article>
-
-
-<article class="card greencard">
-
-<div class="icon green">
-🤖
+<div>
+<label>DURATION</label>
+<select>
+<option>1 tick</option>
+</select>
 </div>
 
-<h2>
-Free Bots
-</h2>
-
-<p>
-Browse ready-made trading strategies.
-</p>
-
-<a href="#" onclick="return action('Free Bots')">
-Explore bots
-<b>↗</b>
-</a>
-
-</article>
-
-
-<article class="card purplecard">
-
-<div class="icon purple">
-⌘
+<div>
+<label>STAKE ($)</label>
+<input id="stake" type="number" value="1" step=".01">
 </div>
 
-<h2>
-Quick Bot Builder
-</h2>
-
-<p>
-Create a bot with custom trade and risk settings.
-</p>
-
-<a href="#" onclick="return action('Quick Bot Builder')">
-Create bot
-<b>↗</b>
-</a>
-
-</article>
-
-
-</main>
-
-
-<div class="notice">
-⚠️ Demo mode — no live trades are executed from this dashboard.
+<div>
+<label>MARTINGALE</label>
+<input id="martingale" type="number" value="2" step=".1">
 </div>
 
-
-<div class="ai" onclick="action('AI Assistant')">
-AI
+<div>
+<label>MAX STEPS</label>
+<select id="steps">
+<option>4</option>
+<option>3</option>
+<option>5</option>
+<option>6</option>
+</select>
 </div>
 
-
-<footer class="bottom">
-
-<div class="run">
-▶ &nbsp; Run
 </div>
 
-<div class="exec">
-<small>EXECUTION</small>
-<b>FAST</b>
+<div class="actions">
+<button class="start" onclick="start()">▶ Start Demo</button>
+<button class="stop" onclick="stop()">■ Stop</button>
+<button class="gray" onclick="backtest()">📊 Backtest 100</button>
+<button class="gray" onclick="reset()">Clear</button>
 </div>
 
-<div class="open">
-⌃ &nbsp; Open transaction
+<div class="stats">
+
+<div class="stat">
+<small>Demo Balance</small>
+<strong id="balance">$100.00</strong>
 </div>
 
-</footer>
+<div class="stat">
+<small>Wins</small>
+<strong id="wins">0</strong>
+</div>
+
+<div class="stat">
+<small>Losses</small>
+<strong id="losses">0</strong>
+</div>
+
+<div class="stat">
+<small>Net P/L</small>
+<strong id="pnl">$0.00</strong>
+</div>
+
+</div>
+
+<div class="log" id="log"></div>
+
+</div>
+
+</section>
+
+
+<!-- FREE BOTS -->
+
+<section id="free" class="hidden">
+
+<div class="hero">
+<h1>🤖 Free Bots</h1>
+<p>Demo strategy presets</p>
+</div>
+
+<div class="cards">
+
+<div class="card" onclick="loadPreset('Over 1');openBuilder()">
+<h3>Over 1</h3>
+<p>1 tick • $1 • Martingale 2</p>
+</div>
+
+<div class="card" onclick="loadPreset('Under 8');openBuilder()">
+<h3>Under 8</h3>
+<p>1 tick • $1 • Martingale 2</p>
+</div>
+
+<div class="card" onclick="loadPreset('Rise');openBuilder()">
+<h3>Rise</h3>
+<p>1 tick • $1 • Martingale 2</p>
+</div>
+
+<div class="card" onclick="loadPreset('Fall');openBuilder()">
+<h3>Fall</h3>
+<p>1 tick • $1 • Martingale 2</p>
+</div>
+
+</div>
+
+</section>
+
+
+<!-- SIGNALS -->
+
+<section id="signals" class="hidden">
+
+<div class="hero">
+<h1>🤖 AI Signals</h1>
+<p>Simulated signals for testing</p>
+</div>
+
+<div class="panel">
+<h3>Volatility 100 (1s)</h3>
+<p id="signal">Waiting for signal...</p>
+<button class="start" onclick="signal()">Generate Signal</button>
+</div>
+
+</section>
+
+
+<!-- RESULTS -->
+
+<section id="results" class="hidden">
+
+<div class="hero">
+<h1>📊 Results</h1>
+<p>Your backtest results</p>
+</div>
+
+<div class="panel">
+
+<div class="stats">
+
+<div class="stat">
+<small>Total Trades</small>
+<strong id="total">0</strong>
+</div>
+
+<div class="stat">
+<small>Wins</small>
+<strong id="rwins">0</strong>
+</div>
+
+<div class="stat">
+<small>Losses</small>
+<strong id="rlosses">0</strong>
+</div>
+
+<div class="stat">
+<small>Net P/L</small>
+<strong id="rpnl">$0.00</strong>
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+</div>
+
+<div class="bottom">
+<span>● DEMO</span>
+<span>Execution: FAST</span>
+<span>1 Tick</span>
+</div>
 
 
 <script>
 
-function action(name){
-alert(name+" is ready for the next build.");
-return false
+let running=false;
+let timer=null;
+let balance=100;
+let wins=0;
+let losses=0;
+let pnl=0;
+let total=0;
+let currentStake=1;
+let step=0;
+
+
+function demo(){
+ alert("Demo mode. Live Deriv connection will be added later.");
 }
 
-function login(){
-alert("Login will be connected in the next build.")
+
+function page(id,button){
+
+ document.querySelectorAll("section").forEach(
+ s=>s.classList.add("hidden")
+ );
+
+ document.getElementById(id).classList.remove("hidden");
+
+ document.querySelectorAll(".nav button").forEach(
+ b=>b.classList.remove("active")
+ );
+
+ if(button)button.classList.add("active");
 }
 
-function token(){
-alert("API Token connection will be added securely in the next build.")
+
+function openBuilder(){
+ page("builder",document.querySelectorAll(".nav button")[1]);
 }
 
-function uploadBot(){
 
-const i=document.createElement("input");
-
-i.type="file";
-
-i.accept=".xml";
-
-i.onchange=()=>alert(
-i.files.length
-?
-"XML selected: "+i.files[0].name
-:
-"No file selected."
-);
-
-i.click();
-
-return false
+function openFree(){
+ page("free",document.querySelectorAll(".nav button")[2]);
 }
 
-const h=new Date().getHours();
 
-document.getElementById("greeting").textContent=
-h<12
-?
-"Good morning"
-:
-h<18
-?
-"Good afternoon"
-:
-"Good evening";
+function update(){
+
+ document.getElementById("balance").textContent=
+ "$"+balance.toFixed(2);
+
+ document.getElementById("wins").textContent=wins;
+
+ document.getElementById("losses").textContent=losses;
+
+ document.getElementById("pnl").textContent=
+ "$"+pnl.toFixed(2);
+
+ document.getElementById("total").textContent=total;
+
+ document.getElementById("rwins").textContent=wins;
+
+ document.getElementById("rlosses").textContent=losses;
+
+ document.getElementById("rpnl").textContent=
+ "$"+pnl.toFixed(2);
+}
+
+
+function trade(){
+
+ let base=parseFloat(document.getElementById("stake").value)||1;
+
+ let mg=parseFloat(document.getElementById("martingale").value)||2;
+
+ if(step===0)currentStake=base;
+
+ let won=Math.random()<0.5;
+
+ total++;
+
+ if(won){
+
+  let profit=currentStake*.85;
+
+  balance+=profit;
+  pnl+=profit;
+  wins++;
+  step=0;
+
+  addTrade("WIN","+$"+profit.toFixed(2),"win");
+
+ }else{
+
+  balance-=currentStake;
+  pnl-=currentStake;
+  losses++;
+  step++;
+
+  addTrade("LOSS","-$"+currentStake.toFixed(2),"loss");
+
+  if(step>parseInt(document.getElementById("steps").value)){
+   step=0;
+  }else{
+   currentStake*=mg;
+  }
+ }
+
+ update();
+}
+
+
+function addTrade(result,value,type){
+
+ let market=document.getElementById("market").value;
+
+ let row=document.createElement("div");
+
+ row.className="trade";
+
+ row.innerHTML=
+ "<span>"+new Date().toLocaleTimeString()+
+ " • "+market+" • "+result+
+ "</span><span class='"+type+"'>"+value+"</span>";
+
+ document.getElementById("log").prepend(row);
+}
+
+
+function start(){
+
+ if(running)return;
+
+ running=true;
+
+ timer=setInterval(trade,900);
+}
+
+
+function stop(){
+
+ running=false;
+
+ clearInterval(timer);
+
+ timer=null;
+}
+
+
+function reset(){
+
+ stop();
+
+ balance=100;
+ wins=0;
+ losses=0;
+ pnl=0;
+ total=0;
+ currentStake=1;
+ step=0;
+
+ document.getElementById("log").innerHTML="";
+
+ update();
+}
+
+
+function backtest(){
+
+ openBuilder();
+
+ reset();
+
+ for(let i=0;i<100;i++){
+  trade();
+ }
+}
+
+
+function loadPreset(contract){
+
+ document.getElementById("contract").value=contract;
+
+ document.getElementById("stake").value=1;
+
+ document.getElementById("martingale").value=2;
+}
+
+
+function signal(){
+
+ let list=["OVER 1","UNDER 8","RISE","FALL"];
+
+ let s=list[Math.floor(Math.random()*list.length)];
+
+ document.getElementById("signal").innerHTML=
+ "<b>Demo Signal: "+s+"</b>";
+}
+
+update();
 
 </script>
 
