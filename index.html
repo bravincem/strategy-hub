@@ -1,3 +1,640 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Deriv Strategy Hub</title>
+
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f5f7fb;
+  color:#172033;
+}
+
+.top{
+  height:62px;
+  background:#fff;
+  border-bottom:1px solid #e5e7eb;
+  display:flex;
+  align-items:center;
+  padding:0 16px;
+  gap:14px;
+  position:sticky;
+  top:0;
+  z-index:5;
+}
+
+.logo{
+  font-weight:800;
+  font-size:18px;
+}
+
+.hamb{
+  font-size:22px;
+}
+
+.topright{
+  margin-left:auto;
+  display:flex;
+  gap:8px;
+}
+
+button{
+  border:0;
+  border-radius:9px;
+  padding:10px 14px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.dark{
+  background:#111827;
+  color:#fff;
+}
+
+.light{
+  background:#eef1f6;
+  color:#111827;
+}
+
+.nav{
+  background:#111827;
+  color:#fff;
+  display:flex;
+  overflow:auto;
+  padding:8px 10px;
+  gap:6px;
+}
+
+.nav button{
+  background:transparent;
+  color:#cbd5e1;
+  white-space:nowrap;
+}
+
+.nav button.active{
+  background:#fff;
+  color:#111827;
+}
+
+.wrap{
+  max-width:1050px;
+  margin:auto;
+  padding:18px;
+}
+
+.page{
+  display:none;
+}
+
+.page.active{
+  display:block;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:12px;
+}
+
+.card{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:14px;
+  padding:16px;
+  box-shadow:0 2px 8px #00000008;
+}
+
+.card h3{
+  margin:0 0 7px;
+}
+
+.muted{
+  color:#64748b;
+  font-size:13px;
+}
+
+.builder{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.field label{
+  font-size:13px;
+  font-weight:700;
+}
+
+.field input,
+.field select{
+  padding:11px;
+  border:1px solid #d8dee8;
+  border-radius:9px;
+  background:#fff;
+}
+
+.actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:14px;
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+  margin-top:14px;
+}
+
+.stat{
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  padding:12px;
+}
+
+.stat b{
+  display:block;
+  font-size:20px;
+  margin-top:4px;
+}
+
+.notice{
+  background:#fff8df;
+  border:1px solid #f1df9a;
+  padding:12px;
+  border-radius:12px;
+  margin:14px 0;
+}
+
+.log{
+  background:#111827;
+  color:#d1d5db;
+  border-radius:12px;
+  padding:12px;
+  min-height:180px;
+  max-height:300px;
+  overflow:auto;
+  font:12px monospace;
+  margin-top:12px;
+}
+
+.bottom{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  background:#111827;
+  color:#fff;
+  padding:9px;
+  text-align:center;
+  font-size:12px;
+}
+
+@media(max-width:700px){
+  .grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .builder,
+  .stats{
+    grid-template-columns:1fr;
+  }
+
+  .top{
+    padding:0 10px;
+  }
+
+  .wrap{
+    padding:12px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header class="top">
+  <span class="hamb">☰</span>
+  <span class="logo">Deriv Strategy Hub</span>
+
+  <div class="topright">
+    <button class="light" onclick="alert('Demo mode')">
+      API Token
+    </button>
+
+    <button class="dark" onclick="alert('Login is available in the live version.')">
+      Log in
+    </button>
+  </div>
+</header>
+
+<nav class="nav">
+
+<button class="active"
+onclick="show('dashboard',this)">
+Dashboard
+</button>
+
+<button onclick="show('builder',this)">
+Bot Builder
+</button>
+
+<button onclick="show('free',this)">
+Free Bots
+</button>
+
+<button onclick="show('signals',this)">
+AI Signals
+</button>
+
+<button onclick="show('results',this)">
+Results
+</button>
+
+</nav>
+
+<main class="wrap">
+
+<!-- DASHBOARD -->
+
+<section id="dashboard" class="page active">
+
+<h2>Dashboard</h2>
+
+<p class="muted">
+Build, test and review your Deriv strategies.
+</p>
+
+<div class="grid">
+
+<div class="card"
+onclick="show('builder',document.querySelectorAll('.nav button')[1])">
+
+<h3>Bot Builder</h3>
+
+<p class="muted">
+Create a 1-tick strategy.
+</p>
+
+</div>
+
+<div class="card"
+onclick="show('free',document.querySelectorAll('.nav button')[2])">
+
+<h3>Free Bots</h3>
+
+<p class="muted">
+Try ready-made presets.
+</p>
+
+</div>
+
+<div class="card"
+onclick="runPreset()">
+
+<h3>Quick Bot</h3>
+
+<p class="muted">
+Run the current setup.
+</p>
+
+</div>
+
+<div class="card"
+onclick="runBacktest()">
+
+<h3>Backtest</h3>
+
+<p class="muted">
+Test 100 simulated trades.
+</p>
+
+</div>
+
+</div>
+
+<div class="notice">
+
+<b>Demo mode:</b>
+Results below are simulated and are not live Deriv trades.
+
+</div>
+
+</section>
+
+
+<!-- BOT BUILDER -->
+
+<section id="builder" class="page">
+
+<h2>Bot Builder</h2>
+
+<div class="card builder">
+
+<div class="field">
+
+<label>Market</label>
+
+<select id="market">
+
+<option>Volatility 100 (1s)</option>
+<option>Volatility 25 (1s)</option>
+<option>Volatility 50 (1s)</option>
+<option>Volatility 75 (1s)</option>
+
+</select>
+
+</div>
+
+
+<div class="field">
+
+<label>Contract</label>
+
+<select id="contract">
+
+<option>Over 1</option>
+<option>Under 8</option>
+<option>Rise</option>
+<option>Fall</option>
+
+</select>
+
+</div>
+
+
+<div class="field">
+
+<label>Duration</label>
+
+<select id="duration">
+
+<option>1 tick</option>
+
+</select>
+
+</div>
+
+
+<div class="field">
+
+<label>Stake ($)</label>
+
+<input
+id="stake"
+type="number"
+min=".35"
+step=".01"
+value="1">
+
+</div>
+
+
+<div class="field">
+
+<label>Martingale</label>
+
+<input
+id="mg"
+type="number"
+min="1"
+step=".1"
+value="2">
+
+</div>
+
+
+<div class="field">
+
+<label>Max steps</label>
+
+<select id="steps">
+
+<option>4</option>
+<option>3</option>
+<option>5</option>
+<option>6</option>
+
+</select>
+
+</div>
+
+</div>
+
+
+<div class="actions">
+
+<button class="dark"
+onclick="startBot()">
+Start Demo
+</button>
+
+<button class="light"
+onclick="stopBot()">
+Stop
+</button>
+
+<button class="light"
+onclick="runBacktest()">
+Backtest 100
+</button>
+
+<button class="light"
+onclick="clearLog()">
+Clear
+</button>
+
+</div>
+
+
+<div class="stats">
+
+<div class="stat">
+Balance
+<b id="balance">$100.00</b>
+</div>
+
+<div class="stat">
+Wins
+<b id="wins">0</b>
+</div>
+
+<div class="stat">
+Losses
+<b id="losses">0</b>
+</div>
+
+<div class="stat">
+Net P/L
+<b id="pnl">$0.00</b>
+</div>
+
+</div>
+
+
+<div id="log" class="log">
+
+Ready. Choose a strategy and start the demo.
+
+</div>
+
+</section>
+
+
+<!-- FREE BOTS -->
+
+<section id="free" class="page">
+
+<h2>Free Bots</h2>
+
+<div class="grid">
+
+<div class="card">
+
+<h3>Over 1</h3>
+
+<p class="muted">
+1-tick digit simulator.
+</p>
+
+<button class="dark"
+onclick="loadPreset('Over 1')">
+Load
+</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>Under 8</h3>
+
+<p class="muted">
+1-tick digit simulator.
+</p>
+
+<button class="dark"
+onclick="loadPreset('Under 8')">
+Load
+</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>Rise</h3>
+
+<p class="muted">
+1-tick direction simulator.
+</p>
+
+<button class="dark"
+onclick="loadPreset('Rise')">
+Load
+</button>
+
+</div>
+
+
+<div class="card">
+
+<h3>Fall</h3>
+
+<p class="muted">
+1-tick direction simulator.
+</p>
+
+<button class="dark"
+onclick="loadPreset('Fall')">
+Load
+</button>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- SIGNALS -->
+
+<section id="signals" class="page">
+
+<h2>AI Signals</h2>
+
+<div class="card">
+
+<p id="signal">
+Press the button to generate a demo signal.
+</p>
+
+<button class="dark"
+onclick="newSignal()">
+New Signal
+</button>
+
+</div>
+
+</section>
+
+
+<!-- RESULTS -->
+
+<section id="results" class="page">
+
+<h2>Results</h2>
+
+<div class="stats">
+
+<div class="stat">
+Trades
+<b id="total">0</b>
+</div>
+
+<div class="stat">
+Wins
+<b id="rwins">0</b>
+</div>
+
+<div class="stat">
+Losses
+<b id="rlosses">0</b>
+</div>
+
+<div class="stat">
+Net P/L
+<b id="rpnl">$0.00</b>
+</div>
+
+</div>
+
+</section>
+
+</main>
+
+
+<div class="bottom">
+
+DEMO &nbsp; • &nbsp;
+Execution FAST &nbsp; • &nbsp;
+1 Tick
+
+</div>
+
+
 <script>
 
 let running=false;
@@ -8,300 +645,292 @@ let wins=0;
 let losses=0;
 let pnl=0;
 let total=0;
-
-let stake=1;
 let step=0;
 
 
-/* SIMULATED TICK DIGIT */
-function simulatedTick(){
-    return Math.floor(Math.random()*10);
+function show(id,btn){
+
+document
+.querySelectorAll('.page')
+.forEach(x=>x.classList.remove('active'));
+
+document
+.getElementById(id)
+.classList.add('active');
+
+document
+.querySelectorAll('.nav button')
+.forEach(x=>x.classList.remove('active'));
+
+if(btn){
+btn.classList.add('active');
+}
+
 }
 
 
-/* CONTRACT LOGIC */
-function contractWin(digit,contract){
+function digit(){
 
-    if(contract==="Over 1"){
-        return digit>1;
-    }
+return Math.floor(Math.random()*10);
 
-    if(contract==="Under 8"){
-        return digit<8;
-    }
-
-    if(contract==="Rise"){
-        return digit>=5;
-    }
-
-    if(contract==="Fall"){
-        return digit<5;
-    }
-
-    return digit>1;
 }
 
 
-/* UPDATE SCREEN */
+function win(d,c){
+
+if(c==='Over 1')
+return d>1;
+
+if(c==='Under 8')
+return d<8;
+
+if(c==='Rise')
+return d>=5;
+
+if(c==='Fall')
+return d<5;
+
+return false;
+
+}
+
+
 function update(){
 
-    document.getElementById("balance").textContent =
-        "$"+balance.toFixed(2);
+document.getElementById('balance')
+.textContent='$'+balance.toFixed(2);
 
-    document.getElementById("wins").textContent =
-        wins;
+document.getElementById('wins')
+.textContent=wins;
 
-    document.getElementById("losses").textContent =
-        losses;
+document.getElementById('losses')
+.textContent=losses;
 
-    document.getElementById("pnl").textContent =
-        "$"+pnl.toFixed(2);
+document.getElementById('pnl')
+.textContent='$'+pnl.toFixed(2);
 
-    document.getElementById("total").textContent =
-        total;
+document.getElementById('total')
+.textContent=total;
 
-    document.getElementById("rwins").textContent =
-        wins;
+document.getElementById('rwins')
+.textContent=wins;
 
-    document.getElementById("rlosses").textContent =
-        losses;
+document.getElementById('rlosses')
+.textContent=losses;
 
-    document.getElementById("rpnl").textContent =
-        "$"+pnl.toFixed(2);
+document.getElementById('rpnl')
+.textContent='$'+pnl.toFixed(2);
+
 }
 
 
-/* ONE SIMULATED TRADE */
+function add(s){
+
+let l=document.getElementById('log');
+
+l.innerHTML += '<br>'+s;
+
+l.scrollTop=l.scrollHeight;
+
+}
+
+
 function trade(){
 
-    let base =
-        parseFloat(document.getElementById("stake").value) || 1;
+let base=
+parseFloat(
+document.getElementById('stake').value
+)||1;
 
-    let mg =
-        parseFloat(document.getElementById("mg").value) || 2;
+let mg=
+parseFloat(
+document.getElementById('mg').value
+)||2;
 
-    let contract =
-        document.getElementById("contract").value;
+let max=
+parseInt(
+document.getElementById('steps').value
+)||4;
 
-    if(step===0){
-        stake=base;
-    }
+let c=
+document.getElementById('contract').value;
 
+let st=
+base*Math.pow(mg,step);
 
-    /* Generate simulated last digit */
-    let digit=simulatedTick();
+let d=digit();
 
+let ok=win(d,c);
 
-    /* Check contract */
-    let won=contractWin(digit,contract);
-
-    total++;
-
-
-    /* WIN */
-    if(won){
-
-        let payoutRate=0.85;
-
-        if(contract==="Rise" || contract==="Fall"){
-            payoutRate=0.95;
-        }
-
-        let profit=stake*payoutRate;
-
-        balance+=profit;
-        pnl+=profit;
-        wins++;
-
-        step=0;
-
-        add(
-            "DIGIT "+digit+" • "+contract+" • WIN",
-            "+$"+profit.toFixed(2),
-            "win"
-        );
-    }
+total++;
 
 
-    /* LOSS */
-    else{
+if(ok){
 
-        balance-=stake;
-        pnl-=stake;
-        losses++;
+let profit=st*0.95;
 
-        step++;
+balance+=profit;
+pnl+=profit;
+wins++;
 
-        add(
-            "DIGIT "+digit+" • "+contract+" • LOSS",
-            "-$"+stake.toFixed(2),
-            "loss"
-        );
+step=0;
 
+add(
+'WIN • '+c+
+' • digit '+d+
+' • stake $'+st.toFixed(2)
+);
 
-        /* MARTINGALE */
-        if(
-            step >
-            parseInt(
-                document.getElementById("steps").value
-            )
-        ){
+}else{
 
-            step=0;
+balance-=st;
+pnl-=st;
+losses++;
 
-        }else{
+step=step+1>=max
+?0
+:step+1;
 
-            stake=stake*mg;
-        }
-    }
+add(
+'LOSS • '+c+
+' • digit '+d+
+' • stake $'+st.toFixed(2)+
+' • next step '+step
+);
 
-    update();
+}
+
+update();
+
 }
 
 
-/* ADD TRADE TO HISTORY */
-function add(result,value,type){
-
-    let market=
-        document.getElementById("market").value;
-
-    let row=
-        document.createElement("div");
-
-    row.className="trade";
-
-    row.innerHTML=
-        "<span>"+
-        new Date().toLocaleTimeString()+
-        " • "+
-        market+
-        " • "+
-        result+
-        "</span>"+
-        "<span class='"+type+"'>"+
-        value+
-        "</span>";
-
-    document
-        .getElementById("log")
-        .prepend(row);
-}
-
-
-/* START BOT */
 function startBot(){
 
-    if(running)return;
+if(running)
+return;
 
-    running=true;
+running=true;
 
-    timer=setInterval(
-        trade,
-        900
-    );
+add('Bot started.');
+
+timer=setInterval(
+trade,
+700
+);
+
 }
 
 
-/* STOP BOT */
 function stopBot(){
 
-    running=false;
+running=false;
 
-    clearInterval(timer);
+clearInterval(timer);
 
-    timer=null;
+timer=null;
+
+add('Bot stopped.');
+
 }
 
 
-/* CLEAR RESULTS */
 function clearLog(){
 
-    stopBot();
+document.getElementById('log')
+.innerHTML='Log cleared.';
 
-    document.getElementById("log").innerHTML="";
-
-    balance=100;
-    wins=0;
-    losses=0;
-    pnl=0;
-    total=0;
-    stake=1;
-    step=0;
-
-    update();
 }
 
 
-/* BACKTEST 100 TRADES */
 function runBacktest(){
 
-    show(
-        "builder",
-        document.querySelectorAll(".nav button")[1]
-    );
+stopBot();
 
-    clearLog();
+balance=100;
+wins=0;
+losses=0;
+pnl=0;
+total=0;
+step=0;
 
-    for(let i=0;i<100;i++){
+clearLog();
 
-        trade();
-    }
+add(
+'Backtest started: 100 simulated trades.'
+);
+
+for(
+let i=0;
+i<100;
+i++
+){
+
+trade();
+
+}
+
+add('Backtest complete.');
+
+update();
+
 }
 
 
-/* QUICK BOT */
 function runPreset(){
 
-    show(
-        "builder",
-        document.querySelectorAll(".nav button")[1]
-    );
+document.getElementById('contract')
+.value='Over 1';
 
-    loadPreset("Over 1");
+startBot();
+
 }
 
 
-/* LOAD PRESET */
-function loadPreset(contract){
+function loadPreset(c){
 
-    document.getElementById("contract").value=
-        contract;
+document.getElementById('contract')
+.value=c;
 
-    document.getElementById("stake").value=
-        1;
+show(
+'builder',
+document.querySelectorAll('.nav button')[1]
+);
 
-    document.getElementById("mg").value=
-        2;
+add(
+'Loaded preset: '+c
+);
 
-    document.getElementById("steps").value=
-        4;
 }
 
 
-/* DEMO SIGNAL */
 function newSignal(){
 
-    let signals=[
-        "OVER 1",
-        "UNDER 8",
-        "RISE",
-        "FALL"
-    ];
+let a=[
+'Over 1',
+'Under 8',
+'Rise',
+'Fall'
+];
 
-    let signal=
-        signals[
-            Math.floor(
-                Math.random()*signals.length
-            )
-        ];
+let c=
+a[
+Math.floor(
+Math.random()*a.length
+)
+];
 
-    document.getElementById("signal").innerHTML=
-        "<b>Demo Signal: "+
-        signal+
-        "</b> • Simulated tick data.";
+document.getElementById('signal')
+.textContent=
+'Demo signal: '+c+
+' • 1 tick • simulated only.';
+
 }
 
 
 update();
 
 </script>
+
+</body>
+</html>
