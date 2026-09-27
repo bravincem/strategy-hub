@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deriv Strategy Hub</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+  background:#080b12;
+  color:#fff;
+  min-height:100vh;
+}
+
+header{
+  height:70px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 28px;
+  border-bottom:1px solid #202633;
+  background:#0c1018;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+
+.logo{
+  font-size:22px;
+  font-weight:800;
+}
+
+.logo span{
+  color:#42a5ff;
+}
+
+.header-right{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.status{
+  font-size:13px;
+  color:#9aa4b2;
+}
+
+.connect{
+  background:#278cff;
+  color:white;
+  border:0;
+  padding:11px 18px;
+  border-radius:9px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.layout{
+  display:flex;
+  min-height:calc(100vh - 70px);
+}
+
+.sidebar{
+  width:230px;
+  border-right:1px solid #202633;
+  background:#0b0f17;
+  padding:25px 15px;
+}
+
+.nav-title{
+  color:#687384;
+  font-size:11px;
+  text-transform:uppercase;
+  margin:10px 12px;
+}
+
+.nav button{
+  width:100%;
+  background:transparent;
+  border:0;
+  color:#aeb7c5;
+  padding:13px 14px;
+  text-align:left;
+  border-radius:8px;
+  cursor:pointer;
+  margin-bottom:4px;
+  font-size:14px;
+}
+
+.nav button:hover,
+.nav button.active{
+  background:#172131;
+  color:#fff;
+}
+
+.main{
+  flex:1;
+  padding:30px;
+  max-width:1400px;
+}
+
+.welcome{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:28px;
+}
+
+.welcome h1{
+  font-size:30px;
+  margin-bottom:7px;
+}
+
+.welcome p{
+  color:#7f8998;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  margin-bottom:25px;
+}
+
+.card{
+  background:#101620;
+  border:1px solid #202a38;
+  border-radius:14px;
+  padding:20px;
+}
+
+.card small{
+  color:#7d8795;
+}
+
+.card h2{
+  margin-top:12px;
+  font-size:25px;
+}
+
+.green{
+  color:#37d49b;
+}
+
+.blue{
+  color:#42a5ff;
+}
+
+.orange{
+  color:#ffb454;
+}
+
+.red{
+  color:#ff6b75;
+}
+
+.section{
+  background:#101620;
+  border:1px solid #202a38;
+  border-radius:14px;
+  padding:22px;
+  margin-bottom:20px;
+}
+
+.section-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.section-head h2{
+  font-size:18px;
+}
+
+.strategy-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px;
+}
+
+.strategy{
+  background:#0c1119;
+  border:1px solid #242e3c;
+  border-radius:12px;
+  padding:18px;
+}
+
+.strategy h3{
+  margin-bottom:9px;
+  font-size:16px;
+}
+
+.strategy p{
+  color:#808b9a;
+  font-size:13px;
+  line-height:1.5;
+}
+
+.badge{
+  display:inline-block;
+  margin-top:14px;
+  padding:5px 9px;
+  border-radius:20px;
+  background:#123629;
+  color:#45d59e;
+  font-size:11px;
+}
+
+.actions{
+  display:flex;
+  gap:9px;
+  margin-top:16px;
+}
+
+.btn{
+  border:0;
+  padding:9px 13px;
+  border-radius:7px;
+  cursor:pointer;
+  font-weight:bold;
+  font-size:12px;
+}
+
+.primary{
+  background:#278cff;
+  color:#fff;
+}
+
+.secondary{
+  background:#202a38;
+  color:#dce3ec;
+}
+
+.table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.table th,
+.table td{
+  padding:14px 10px;
+  text-align:left;
+  border-bottom:1px solid #202936;
+  font-size:13px;
+}
+
+.table th{
+  color:#687486;
+  font-weight:normal;
+}
+
+.empty{
+  text-align:center;
+  padding:35px;
+  color:#6f7b8c;
+}
+
+.modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+  padding:20px;
+}
+
+.modal-box{
+  width:100%;
+  max-width:430px;
+  background:#111721;
+  border:1px solid #2a3545;
+  border-radius:16px;
+  padding:25px;
+}
+
+.modal-box h2{
+  margin-bottom:10px;
+}
+
+.modal-box p{
+  color:#8792a1;
+  font-size:13px;
+  line-height:1.6;
+  margin-bottom:20px;
+}
+
+.modal input{
+  width:100%;
+  padding:13px;
+  background:#090d14;
+  border:1px solid #2b3646;
+  color:#fff;
+  border-radius:8px;
+  margin-bottom:12px;
+}
+
+.close{
+  float:right;
+  background:none;
+  border:0;
+  color:#8792a1;
+  font-size:22px;
+  cursor:pointer;
+}
+
+footer{
+  text-align:center;
+  color:#596474;
+  font-size:12px;
+  padding:30px;
+}
+
+@media(max-width:900px){
+  .sidebar{
+    width:70px;
+    padding:15px 8px;
+  }
+
+  .nav-title{
+    display:none;
+  }
+
+  .nav button{
+    font-size:0;
+    text-align:center;
+  }
+
+  .nav button:first-letter{
+    font-size:18px;
+  }
+
+  .cards{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .strategy-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:600px){
+  header{
+    padding:0 15px;
+  }
+
+  .status{
+    display:none;
+  }
+
+  .main{
+    padding:18px 12px;
+  }
+
+  .welcome{
+    display:block;
+  }
+
+  .cards{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .card{
+    padding:15px;
+  }
+
+  .card h2{
+    font-size:20px;
+  }
+
+  .table{
+    min-width:600px;
+  }
+
+  .section{
+    overflow-x:auto;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">Deriv <span>Strategy Hub</span></div>
+
+  <div class="header-right">
+    <div class="status" id="connectionStatus">
+      ● Not connected
+    </div>
+    <button class="connect" onclick="openConnect()">
+      Connect Deriv
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+
+<aside class="sidebar">
+
+  <div class="nav-title">Main</div>
+
+  <div class="nav">
+    <button class="active" onclick="showPage('dashboard',this)">🏠 Dashboard</button>
+    <button onclick="showPage('bots',this)">🤖 My Bots</button>
+    <button onclick="showPage('strategies',this)">📊 Strategies</button>
+    <button onclick="showPage('signals',this)">⚡ Signals</button>
+    <button onclick="showPage('journal',this)">📒 Journal</button>
+  </div>
+
+  <div class="nav-title">Account</div>
+
+  <div class="nav">
+    <button onclick="openConnect()">🔗 API Connection</button>
+    <button onclick="demo()">🧪 Demo Mode</button>
+  </div>
+
+</aside>
+
+<main class="main">
+
+<!-- DASHBOARD -->
+
+<div id="dashboard" class="page">
+
+<div class="welcome">
+  <div>
+    <h1>Strategy Dashboard</h1>
+    <p>Manage your Deriv strategies from one place.</p>
+  </div>
+</div>
+
+<div class="cards">
+
+  <div class="card">
+    <small>Account Status</small>
+    <h2 class="orange" id="accountStatus">Demo</h2>
+  </div>
+
+  <div class="card">
+    <small>Active Strategies</small>
+    <h2 class="blue">3</h2>
+  </div>
+
+  <div class="card">
+    <small>Trades Today</small>
+    <h2>0</h2>
+  </div>
+
+  <div class="card">
+    <small>Session P/L</small>
+    <h2 class="green">$0.00</h2>
+  </div>
+
+</div>
+
+<div class="section">
+
+<div class="section-head">
+  <h2>Featured Strategies</h2>
+  <button class="btn secondary" onclick="showPage('strategies')">
+    View all
+  </button>
+</div>
+
+<div class="strategy-grid">
+
+<div class="strategy">
+  <h3>Smart Rise/Fall v2</h3>
+  <p>Direction filter strategy designed for fast 1-tick testing.</p>
+  <span class="badge">READY</span>
+
+  <div class="actions">
+    <button class="btn primary" onclick="testStrategy('Smart Rise/Fall v2')">
+      Test
+    </button>
+    <button class="btn secondary" onclick="details('Smart Rise/Fall v2')">
+      Details
+    </button>
+  </div>
+</div>
+
+<div class="strategy">
+  <h3>Smart Digit Filter v1</h3>
+  <p>Digit strategy using an Over 2 contract configuration.</p>
+  <span class="badge">READY</span>
+
+  <div class="actions">
+    <button class="btn primary" onclick="testStrategy('Smart Digit Filter v1')">
+      Test
+    </button>
+    <button class="btn secondary" onclick="details('Smart Digit Filter v1')">
+      Details
+    </button>
+  </div>
+</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deriv Strategy Hub</title>
+
+<style>
+*{
+  box-sizing:border-box;
+  margin:0;
+  padding:0;
+  font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+  background:#080b12;
+  color:#fff;
+  min-height:100vh;
+}
+
+header{
+  height:70px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 28px;
+  border-bottom:1px solid #202633;
+  background:#0c1018;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+
+.logo{
+  font-size:22px;
+  font-weight:800;
+}
+
+.logo span{
+  color:#42a5ff;
+}
+
+.header-right{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.status{
+  font-size:13px;
+  color:#9aa4b2;
+}
+
+.connect{
+  background:#278cff;
+  color:white;
+  border:0;
+  padding:11px 18px;
+  border-radius:9px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.layout{
+  display:flex;
+  min-height:calc(100vh - 70px);
+}
+
+.sidebar{
+  width:230px;
+  border-right:1px solid #202633;
+  background:#0b0f17;
+  padding:25px 15px;
+}
+
+.nav-title{
+  color:#687384;
+  font-size:11px;
+  text-transform:uppercase;
+  margin:10px 12px;
+}
+
+.nav button{
+  width:100%;
+  background:transparent;
+  border:0;
+  color:#aeb7c5;
+  padding:13px 14px;
+  text-align:left;
+  border-radius:8px;
+  cursor:pointer;
+  margin-bottom:4px;
+  font-size:14px;
+}
+
+.nav button:hover,
+.nav button.active{
+  background:#172131;
+  color:#fff;
+}
+
+.main{
+  flex:1;
+  padding:30px;
+  max-width:1400px;
+}
+
+.welcome{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:28px;
+}
+
+.welcome h1{
+  font-size:30px;
+  margin-bottom:7px;
+}
+
+.welcome p{
+  color:#7f8998;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  margin-bottom:25px;
+}
+
+.card{
+  background:#101620;
+  border:1px solid #202a38;
+  border-radius:14px;
+  padding:20px;
+}
+
+.card small{
+  color:#7d8795;
+}
+
+.card h2{
+  margin-top:12px;
+  font-size:25px;
+}
+
+.green{
+  color:#37d49b;
+}
+
+.blue{
+  color:#42a5ff;
+}
+
+.orange{
+  color:#ffb454;
+}
+
+.red{
+  color:#ff6b75;
+}
+
+.section{
+  background:#101620;
+  border:1px solid #202a38;
+  border-radius:14px;
+  padding:22px;
+  margin-bottom:20px;
+}
+
+.section-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.section-head h2{
+  font-size:18px;
+}
+
+.strategy-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:15px;
+}
+
+.strategy{
+  background:#0c1119;
+  border:1px solid #242e3c;
+  border-radius:12px;
+  padding:18px;
+}
+
+.strategy h3{
+  margin-bottom:9px;
+  font-size:16px;
+}
+
+.strategy p{
+  color:#808b9a;
+  font-size:13px;
+  line-height:1.5;
+}
+
+.badge{
+  display:inline-block;
+  margin-top:14px;
+  padding:5px 9px;
+  border-radius:20px;
+  background:#123629;
+  color:#45d59e;
+  font-size:11px;
+}
+
+.actions{
+  display:flex;
+  gap:9px;
+  margin-top:16px;
+}
+
+.btn{
+  border:0;
+  padding:9px 13px;
+  border-radius:7px;
+  cursor:pointer;
+  font-weight:bold;
+  font-size:12px;
+}
+
+.primary{
+  background:#278cff;
+  color:#fff;
+}
+
+.secondary{
+  background:#202a38;
+  color:#dce3ec;
+}
+
+.table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.table th,
+.table td{
+  padding:14px 10px;
+  text-align:left;
+  border-bottom:1px solid #202936;
+  font-size:13px;
+}
+
+.table th{
+  color:#687486;
+  font-weight:normal;
+}
+
+.empty{
+  text-align:center;
+  padding:35px;
+  color:#6f7b8c;
+}
+
+.modal{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+  padding:20px;
+}
+
+.modal-box{
+  width:100%;
+  max-width:430px;
+  background:#111721;
+  border:1px solid #2a3545;
+  border-radius:16px;
+  padding:25px;
+}
+
+.modal-box h2{
+  margin-bottom:10px;
+}
+
+.modal-box p{
+  color:#8792a1;
+  font-size:13px;
+  line-height:1.6;
+  margin-bottom:20px;
+}
+
+.modal input{
+  width:100%;
+  padding:13px;
+  background:#090d14;
+  border:1px solid #2b3646;
+  color:#fff;
+  border-radius:8px;
+  margin-bottom:12px;
+}
+
+.close{
+  float:right;
+  background:none;
+  border:0;
+  color:#8792a1;
+  font-size:22px;
+  cursor:pointer;
+}
+
+footer{
+  text-align:center;
+  color:#596474;
+  font-size:12px;
+  padding:30px;
+}
+
+@media(max-width:900px){
+  .sidebar{
+    width:70px;
+    padding:15px 8px;
+  }
+
+  .nav-title{
+    display:none;
+  }
+
+  .nav button{
+    font-size:0;
+    text-align:center;
+  }
+
+  .nav button:first-letter{
+    font-size:18px;
+  }
+
+  .cards{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .strategy-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:600px){
+  header{
+    padding:0 15px;
+  }
+
+  .status{
+    display:none;
+  }
+
+  .main{
+    padding:18px 12px;
+  }
+
+  .welcome{
+    display:block;
+  }
+
+  .cards{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .card{
+    padding:15px;
+  }
+
+  .card h2{
+    font-size:20px;
+  }
+
+  .table{
+    min-width:600px;
+  }
+
+  .section{
+    overflow-x:auto;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <div class="logo">Deriv <span>Strategy Hub</span></div>
+
+  <div class="header-right">
+    <div class="status" id="connectionStatus">
+      ● Not connected
+    </div>
+    <button class="connect" onclick="openConnect()">
+      Connect Deriv
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+
+<aside class="sidebar">
+
+  <div class="nav-title">Main</div>
+
+  <div class="nav">
+    <button class="active" onclick="showPage('dashboard',this)">🏠 Dashboard</button>
+    <button onclick="showPage('bots',this)">🤖 My Bots</button>
+    <button onclick="showPage('strategies',this)">📊 Strategies</button>
+    <button onclick="showPage('signals',this)">⚡ Signals</button>
+    <button onclick="showPage('journal',this)">📒 Journal</button>
+  </div>
+
+  <div class="nav-title">Account</div>
+
+  <div class="nav">
+    <button onclick="openConnect()">🔗 API Connection</button>
+    <button onclick="demo()">🧪 Demo Mode</button>
+  </div>
+
+</aside>
+
+<main class="main">
+
+<!-- DASHBOARD -->
+
+<div id="dashboard" class="page">
+
+<div class="welcome">
+  <div>
+    <h1>Strategy Dashboard</h1>
+    <p>Manage your Deriv strategies from one place.</p>
+  </div>
+</div>
+
+<div class="cards">
+
+  <div class="card">
+    <small>Account Status</small>
+    <h2 class="orange" id="accountStatus">Demo</h2>
+  </div>
+
+  <div class="card">
+    <small>Active Strategies</small>
+    <h2 class="blue">3</h2>
+  </div>
+
+  <div class="card">
+    <small>Trades Today</small>
+    <h2>0</h2>
+  </div>
+
+  <div class="card">
+    <small>Session P/L</small>
+    <h2 class="green">$0.00</h2>
+  </div>
+
+</div>
+
+<div class="section">
+
+<div class="section-head">
+  <h2>Featured Strategies</h2>
+  <button class="btn secondary" onclick="showPage('strategies')">
+    View all
+  </button>
+</div>
+
+<div class="strategy-grid">
+
+<div class="strategy">
+  <h3>Smart Rise/Fall v2</h3>
+  <p>Direction filter strategy designed for fast 1-tick testing.</p>
+  <span class="badge">READY</span>
+
+  <div class="actions">
+    <button class="btn primary" onclick="testStrategy('Smart Rise/Fall v2')">
+      Test
+    </button>
+    <button class="btn secondary" onclick="details('Smart Rise/Fall v2')">
+      Details
+    </button>
+  </div>
+</div>
+
+<div class="strategy">
+  <h3>Smart Digit Filter v1</h3>
+  <p>Digit strategy using an Over 2 contract configuration.</p>
+  <span class="badge">READY</span>
+
+  <div class="actions">
+    <button class="btn primary" onclick="testStrategy('Smart Digit Filter v1')">
+      Test
+    </button>
+    <button class="btn secondary" onclick="details('Smart Digit Filter v1')">
+      Details
+    </button>
+  </div>
+</div>
+
+<div class="strategy">
+  <h3>Recovery Over Strategy</h3>
+  <p>Experimental recovery configuration with adjustable stake.</p>
+  <span class="badge">TESTING</span>
+
+  <div class="actions">
+    <button class="btn primary" onclick="testStrategy('Recovery Over Strategy')">
+      Test
+    </button>
+    <button class="btn secondary" onclick="details('Recovery Over Strategy')">
+      Details
+    </button>
+  </div>
+</div>
+
+</div>
+</div>
+
+<div class="section">
+
+<div class="section-head">
+  <h2
+<div class="strategy">
+  <h3>Recovery Over Strategy</h3>
+  <p>Experimental recovery configuration with adjustable stake.</p>
+  <span class="badge">TESTING</span>
+
+  <div class="actions">
+    <button class="btn primary" onclick="testStrategy('Recovery Over Strategy')">
+      Test
+    </button>
+    <button class="btn secondary" onclick="details('Recovery Over Strategy')">
+      Details
+    </button>
+  </div>
+</div>
+
+</div>
+</div>
+
+<div class="section">
+
+<div class="section-head">
+  <h2
