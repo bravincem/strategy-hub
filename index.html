@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,347 +8,621 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 
-body{
-  font-family:Arial,Helvetica,sans-serif;
-  background:#080b12;
-  color:#fff;
-  min-height:100vh;
+:root{
+--bg:#050b16;
+--panel:#101b2d;
+--line:#233653;
+--blue:#278cff;
+--cyan:#54dfff;
+--text:#f4f7fb;
+--muted:#9baac0;
+--gold:#f4c85d;
+--green:#62ddb0;
+--purple:#b894ff;
 }
 
-header{
-  height:64px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 16px;
-  background:#0c1018;
-  border-bottom:1px solid #202633;
-  position:sticky;
-  top:0;
-  z-index:10;
+body{
+font-family:Arial,Helvetica,sans-serif;
+background:var(--bg);
+color:var(--text);
+min-height:100vh;
+padding-bottom:72px
+}
+
+.top{
+height:62px;
+background:#f7f9fc;
+color:#07101e;
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 14px;
+position:sticky;
+top:0;
+z-index:20
+}
+
+.brand{
+display:flex;
+align-items:center;
+gap:10px
+}
+
+.menu{
+font-size:25px;
+color:#555
 }
 
 .logo{
-  font-size:19px;
-  font-weight:800;
+width:44px;
+height:44px;
+border-radius:50%;
+display:grid;
+place-items:center;
+background:#dffff9;
+border:2px solid #b9eee6;
+font-size:21px
 }
 
-.logo span{color:#2f91ff}
-
-.connect{
-  background:#278cff;
-  color:white;
-  border:0;
-  padding:10px 14px;
-  border-radius:8px;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-.layout{
-  display:flex;
-  min-height:calc(100vh - 64px);
-}
-
-.sidebar{
-  width:72px;
-  background:#0b0f17;
-  border-right:1px solid #202633;
-  padding:15px 8px;
-  text-align:center;
-}
-
-.nav{
-  padding:12px 5px;
-  margin:5px 0;
-  border-radius:8px;
-  cursor:pointer;
-  font-size:20px;
-}
-
-.nav:hover,.nav.active{
-  background:#151c29;
-}
-
-.main{
-  flex:1;
-  max-width:1100px;
-  margin:auto;
-  padding:22px 18px;
-}
-
-.title{
-  font-size:28px;
-  margin-bottom:5px;
-}
-
-.subtitle{
-  color:#8993a5;
-  margin-bottom:20px;
-}
-
-.stats{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:12px;
-  margin-bottom:20px;
-}
-
-.card{
-  background:#111721;
-  border:1px solid #252e3d;
-  border-radius:14px;
-  padding:17px;
-}
-
-.card small{
-  color:#8993a5;
-  display:block;
-  margin-bottom:7px;
-}
-
-.number{
-  font-size:25px;
-  font-weight:bold;
-}
-
-.green{color:#27d89b}
-.blue{color:#3d9bff}
-.orange{color:#ffb347}
-
-.section{
-  background:#111721;
-  border:1px solid #252e3d;
-  border-radius:14px;
-  padding:18px;
-}
-
-.section h2{
-  font-size:20px;
-  margin-bottom:14px;
-}
-
-.strategy{
-  background:#0b1018;
-  border:1px solid #293346;
-  border-radius:11px;
-  padding:15px;
-  margin-bottom:12px;
-}
-
-.strategy:last-child{margin-bottom:0}
-
-.strategy h3{
-  font-size:17px;
-  margin-bottom:6px;
-}
-
-.strategy p{
-  color:#8993a5;
-  font-size:13px;
-  line-height:1.4;
-  margin-bottom:10px;
-}
-
-.badge{
-  display:inline-block;
-  background:#073d2d;
-  color:#36d99d;
-  padding:5px 9px;
-  border-radius:20px;
-  font-size:11px;
-  margin-bottom:10px;
-}
-
-.buttons{
-  display:flex;
-  gap:8px;
+.top-actions{
+display:flex;
+gap:8px
 }
 
 .btn{
-  border:0;
-  border-radius:7px;
-  padding:9px 13px;
-  font-weight:bold;
-  cursor:pointer;
+border:0;
+border-radius:7px;
+padding:10px 15px;
+font-weight:800;
+color:#fff;
+background:linear-gradient(135deg,#287ee7,#163b88);
+font-size:14px
 }
 
-.test{
-  background:#278cff;
-  color:white;
+.nav{
+height:58px;
+background:#09152a;
+border-bottom:1px solid #1d3353;
+display:flex;
+align-items:stretch;
+overflow-x:auto;
+white-space:nowrap;
+position:sticky;
+top:62px;
+z-index:19
 }
 
-.details{
-  background:#202b3c;
-  color:white;
+.nav::-webkit-scrollbar{
+display:none
 }
 
-footer{
-  text-align:center;
-  color:#596477;
-  font-size:11px;
-  padding:20px;
+.nav-item{
+min-width:max-content;
+padding:0 17px;
+display:flex;
+align-items:center;
+gap:9px;
+color:#e9eef7;
+font-weight:800;
+font-size:14px;
+border-right:1px solid #142846
 }
 
-@media(max-width:600px){
-  .main{
-    padding:16px 12px;
-  }
+.nav-item span{
+font-size:21px;
+color:#ff6f64
+}
 
-  .title{
-    font-size:24px;
-  }
+.nav-item.active{
+background:#143f8b
+}
 
-  .subtitle{
-    font-size:13px;
-  }
+.hero{
+text-align:center;
+padding:34px 18px 28px;
+background:
+radial-gradient(
+circle at 50% 15%,
+#102c52 0,
+#071223 42%,
+#050b16 80%
+)
+}
 
-  .sidebar{
-    width:58px;
-    padding:12px 5px;
-  }
+.hero h1{
+font-size:29px;
+color:var(--cyan);
+margin-bottom:12px
+}
 
-  .nav{
-    font-size:18px;
-    padding:10px 3px;
-  }
+.hero p{
+color:#9ca9bd;
+font-size:15px;
+font-style:italic
+}
 
-  .stats{
-    gap:9px;
-  }
+.section-title{
+display:flex;
+align-items:center;
+gap:14px;
+margin:0 18px 18px;
+color:#9fb2cb;
+font-size:11px;
+letter-spacing:3px;
+font-weight:800
+}
 
-  .card{
-    padding:13px;
-  }
+.section-title:before,
+.section-title:after{
+content:"";
+height:1px;
+background:#27466e;
+flex:1
+}
 
-  .number{
-    font-size:21px;
-  }
+.grid{
+display:grid;
+grid-template-columns:repeat(2,minmax(0,1fr));
+gap:14px;
+padding:0 18px
+}
 
-  .section{
-    padding:14px;
-  }
+.card{
+min-height:210px;
+background:linear-gradient(160deg,#14243a,#0c1626);
+border:1px solid #2a3d59;
+border-radius:22px;
+padding:24px 22px;
+box-shadow:0 8px 24px rgba(0,0,0,.22)
+}
 
-  .strategy{
-    padding:13px;
-  }
+.icon{
+width:60px;
+height:60px;
+border-radius:18px;
+display:grid;
+place-items:center;
+font-size:30px;
+margin-bottom:25px
+}
 
-  .strategy h3{
-    font-size:16px;
-  }
+.gold{
+background:#3b3322;
+color:var(--gold)
+}
 
-  .connect{
-    padding:9px 11px;
-    font-size:12px;
-  }
+.blue{
+background:#0d3048;
+color:#61c8ff
+}
+
+.green{
+background:#0d3a32;
+color:#67dfbd
+}
+
+.purple{
+background:#302449;
+color:#c09cff
+}
+
+.card h2{
+font-size:17px;
+margin-bottom:12px
+}
+
+.card p{
+color:#9aaac0;
+font-size:13px;
+line-height:1.55;
+min-height:42px
+}
+
+.card a{
+display:flex;
+justify-content:space-between;
+align-items:center;
+border-top:1px solid #29405e;
+margin-top:16px;
+padding-top:14px;
+text-decoration:none;
+font-weight:800;
+font-size:13px
+}
+
+.goldcard a{
+color:var(--gold)
+}
+
+.bluecard a{
+color:#62cfff
+}
+
+.greencard a{
+color:var(--green)
+}
+
+.purplecard a{
+color:var(--purple)
+}
+
+.notice{
+margin:22px 18px 0;
+padding:13px 15px;
+border:1px solid #30435e;
+border-radius:13px;
+background:#0c1728;
+color:#a9b8cb;
+font-size:12px
+}
+
+.ai{
+position:fixed;
+right:17px;
+bottom:79px;
+width:67px;
+height:67px;
+border-radius:50%;
+background:
+radial-gradient(
+circle at 35% 25%,
+#d0a7ff,
+#7545a5 65%,
+#42265f
+);
+display:grid;
+place-items:center;
+font-size:24px;
+font-weight:900;
+box-shadow:0 0 25px #7545a566;
+z-index:30
+}
+
+.ai:after{
+content:"";
+position:absolute;
+right:4px;
+top:4px;
+width:9px;
+height:9px;
+border-radius:50%;
+background:#26d987;
+border:2px solid #132035
+}
+
+.bottom{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+height:70px;
+background:#f5f7f8;
+color:#182234;
+display:grid;
+grid-template-columns:1fr 1.6fr 1.2fr;
+z-index:40;
+border-top:1px solid #c9d1dc
+}
+
+.run{
+background:linear-gradient(135deg,#0d5fc4,#1b8df5);
+color:white;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:8px;
+font-weight:900
+}
+
+.exec{
+padding:11px 14px;
+background:#edf8f1
+}
+
+.exec small{
+display:block;
+color:#8995a3;
+font-weight:700;
+font-size:10px
+}
+
+.exec b{
+font-size:12px
+}
+
+.open{
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:800;
+font-size:13px
+}
+
+@media(max-width:380px){
+
+.grid{
+gap:10px;
+padding:0 12px
+}
+
+.card{
+padding:18px 15px;
+min-height:195px
+}
+
+.icon{
+width:52px;
+height:52px;
+font-size:25px;
+margin-bottom:20px
+}
+
+.card h2{
+font-size:15px
+}
+
+.card p{
+font-size:12px
+}
+
+.nav-item{
+padding:0 13px
+}
+
 }
 </style>
 </head>
 
 <body>
 
-<header>
-  <div class="logo">Deriv <span>Strategy Hub</span></div>
-  <button class="connect" onclick="connectDeriv()">Connect Deriv</button>
-</header>
+<header class="top">
 
-<div class="layout">
+<div class="brand">
 
-<aside class="sidebar">
-  <div class="nav active" title="Dashboard">🏠</div>
-  <div class="nav" title="Bots">🤖</div>
-  <div class="nav" title="Strategies">📊</div>
-  <div class="nav" title="Signals">⚡</div>
-  <div class="nav" title="Journal">📒</div>
-  <div class="nav" title="Connection">🔗</div>
-</aside>
-
-<main class="main">
-
-  <h1 class="title">Strategy Dashboard</h1>
-  <p class="subtitle">Manage your Deriv strategies from one place.</p>
-
-  <div class="stats">
-
-    <div class="card">
-      <small>Account Status</small>
-      <div class="number orange">Demo</div>
-    </div>
-
-    <div class="card">
-      <small>Active Strategies</small>
-      <div class="number blue">3</div>
-    </div>
-
-    <div class="card">
-      <small>Trades Today</small>
-      <div class="number">0</div>
-    </div>
-
-    <div class="card">
-      <small>Session P/L</small>
-      <div class="number green">$0.00</div>
-    </div>
-
-  </div>
-
-  <section class="section">
-    <h2>Featured Strategies</h2>
-
-    <div class="strategy">
-      <h3>Smart Rise/Fall v2</h3>
-      <p>Direction strategy designed for fast 1-tick testing.</p>
-      <span class="badge">READY</span>
-
-      <div class="buttons">
-        <button class="btn test" onclick="testBot('Smart Rise/Fall v2')">Test</button>
-        <button class="btn details" onclick="details('Smart Rise/Fall v2')">Details</button>
-      </div>
-    </div>
-
-    <div class="strategy">
-      <h3>Smart Digit Filter v1</h3>
-      <p>Digit strategy using an Over 2 contract configuration.</p>
-      <span class="badge">READY</span>
-
-      <div class="buttons">
-        <button class="btn test" onclick="testBot('Smart Digit Filter v1')">Test</button>
-        <button class="btn details" onclick="details('Smart Digit Filter v1')">Details</button>
-      </div>
-    </div>
-
-    <div class="strategy">
-      <h3>Recovery Over Strategy</h3>
-      <p>Recovery system with configurable stake and risk settings.</p>
-      <span class="badge">READY</span>
-
-      <div class="buttons">
-        <button class="btn test" onclick="testBot('Recovery Over Strategy')">Test</button>
-        <button class="btn details" onclick="details('Recovery Over Strategy')">Details</button>
-      </div>
-    </div>
-
-  </section>
-
-  <footer>
-    Deriv Strategy Hub • Demo Mode
-  </footer>
-
-</main>
+<div class="menu">
+☰
 </div>
 
+<div class="logo">
+💬
+</div>
+
+</div>
+
+<div class="top-actions">
+
+<button class="btn" onclick="login()">
+Log in
+</button>
+
+<button class="btn" onclick="token()">
+API Token
+</button>
+
+</div>
+
+</header>
+
+
+<nav class="nav">
+
+<div class="nav-item active">
+<span>⌂</span>
+Dashboard
+</div>
+
+<div class="nav-item">
+<span>⚙</span>
+Bot Builder
+</div>
+
+<div class="nav-item">
+<span>🤖</span>
+Free Bots
+</div>
+
+<div class="nav-item">
+<span>✦</span>
+AI Signals
+</div>
+
+<div class="nav-item">
+<span>📊</span>
+Results
+</div>
+
+</nav>
+
+
+<section class="hero">
+
+<h1 id="greeting">
+Good afternoon
+</h1>
+
+<p>
+"The market rewards patience and punishes impatience."
+</p>
+
+</section>
+
+
+<div class="section-title">
+QUICK ACTIONS
+</div>
+
+
+<main class="grid">
+
+
+<article class="card goldcard">
+
+<div class="icon gold">
+♕
+</div>
+
+<h2>
+Premium Bots
+</h2>
+
+<p>
+Explore premium trading strategies.
+</p>
+
+<a href="#" onclick="return action('Premium Bots')">
+Explore bots
+<b>↗</b>
+</a>
+
+</article>
+
+
+<article class="card bluecard">
+
+<div class="icon blue">
+⇧
+</div>
+
+<h2>
+Upload Bot
+</h2>
+
+<p>
+Import an XML bot from your device.
+</p>
+
+<a href="#" onclick="return uploadBot()">
+Import XML
+<b>↗</b>
+</a>
+
+</article>
+
+
+<article class="card greencard">
+
+<div class="icon green">
+🤖
+</div>
+
+<h2>
+Free Bots
+</h2>
+
+<p>
+Browse ready-made trading strategies.
+</p>
+
+<a href="#" onclick="return action('Free Bots')">
+Explore bots
+<b>↗</b>
+</a>
+
+</article>
+
+
+<article class="card purplecard">
+
+<div class="icon purple">
+⌘
+</div>
+
+<h2>
+Quick Bot Builder
+</h2>
+
+<p>
+Create a bot with custom trade and risk settings.
+</p>
+
+<a href="#" onclick="return action('Quick Bot Builder')">
+Create bot
+<b>↗</b>
+</a>
+
+</article>
+
+
+</main>
+
+
+<div class="notice">
+⚠️ Demo mode — no live trades are executed from this dashboard.
+</div>
+
+
+<div class="ai" onclick="action('AI Assistant')">
+AI
+</div>
+
+
+<footer class="bottom">
+
+<div class="run">
+▶ &nbsp; Run
+</div>
+
+<div class="exec">
+<small>EXECUTION</small>
+<b>FAST</b>
+</div>
+
+<div class="open">
+⌃ &nbsp; Open transaction
+</div>
+
+</footer>
+
+
 <script>
-function connectDeriv(){
-  alert("Deriv connection will be added here. Demo Mode is currently active.");
+
+function action(name){
+alert(name+" is ready for the next build.");
+return false
 }
 
-function testBot(name){
-  alert(name + " is ready for testing.");
+function login(){
+alert("Login will be connected in the next build.")
 }
 
-function details(name){
-  alert(name + " strategy details.");
+function token(){
+alert("API Token connection will be added securely in the next build.")
 }
+
+function uploadBot(){
+
+const i=document.createElement("input");
+
+i.type="file";
+
+i.accept=".xml";
+
+i.onchange=()=>alert(
+i.files.length
+?
+"XML selected: "+i.files[0].name
+:
+"No file selected."
+);
+
+i.click();
+
+return false
+}
+
+const h=new Date().getHours();
+
+document.getElementById("greeting").textContent=
+h<12
+?
+"Good morning"
+:
+h<18
+?
+"Good afternoon"
+:
+"Good evening";
+
 </script>
 
 </body>
