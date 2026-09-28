@@ -219,21 +219,94 @@ function updateModeNotice(){
   $("modeNotice").style.background=real?"#fff5f4":"#fff6df";
   $("modeNotice").style.color=real?"#a51d16":"#765000";
 }
+let tradingPingTimer=null;
+let tradingHandshakeTimer=null;
+
+function clearTradingTimers(){
+  if(tradingPingTimer){clearInterval(tradingPingTimer);tradingPingTimer=null;}
+  if(tradingHandshakeTimer){clearTimeout(tradingHandshakeTimer);tradingHandshakeTimer=null;}
+}
+
+function extractWsUrl(d){
+  // Deriv's current OTP response is { data: { url: "wss://...?..." } }.
+  // Keep compatibility with the Worker response while preferring the official field.
+  return d?.data?.url || d?.ws_url || d?.websocket_url || d?.url || "";
+}
+
 async function connectTrading(){
   if(!selectedAccount||!sessionId)return;
   if(!selectedAccount.is_demo && !$("realConfirm").checked){alert("Tick the REAL TRADING confirmation first.");return}
   try{
     $("tradingConnectBtn").disabled=true;
-    const r=await fetch(API_BASE+"/api/ws-url",{method:"POST",headers:authHeaders(),body:JSON.stringify({account_id:selectedAccount.id})});
-    const d=await r.json();
-    if(!r.ok||!d.ok)throw new Error(d.error||"Could not connect trading");
-    if(ws&&ws.readyState===WebSocket.OPEN)ws.close();
-    ws=new WebSocket(d.ws_url);
-    ws.onopen=()=>{log((selectedAccount.is_demo?"DEMO":"REAL")+" trading WebSocket connected.");$("startBtn").disabled=false;send({balance:1,subscribe:1});};
-    ws.onmessage=e=>handleTradingMessage(JSON.parse(e.data));
-    ws.onerror=e=>log("Trading WebSocket error. The secure connection was not kept open.","loss");
-    ws.onclose=e=>{log("Trading connection closed"+(e&&e.code?" • code "+e.code:"")+((e&&e.reason)?" • "+e.reason:""));$("startBtn").disabled=true;$("stopBtn").disabled=true;$("tradingConnectBtn").disabled=false};
-  }catch(e){log("Trading connection error: "+e.message);$("tradingConnectBtn").disabled=false}
+    clearTradingTimers();
+    if(ws && ws.readyState!==WebSocket.CLOSED){try{ws.close(1000,"reconnect")}catch{}}
+
+    const r=await fetch(API_BASE+"/api/ws-url",{
+      method:"POST",headers:authHeaders(),cache:"no-store",
+      body:JSON.stringify({account_id:selectedAccount.id})
+    });
+    const raw=await r.text();
+    let d;
+    try{d=JSON.parse(raw)}catch{throw new Error("Trading API returned non-JSON (HTTP "+r.status+")")}
+    if(!r.ok||d.ok===false)throw new Error(d.error||d.message||("Could not connect trading (HTTP "+r.status+")"));
+
+    const wsUrl=extractWsUrl(d);
+    if(!wsUrl || !/^wss:\/\//i.test(wsUrl))
+      throw new Error("Trading API did not return a valid authenticated WebSocket URL.");
+
+    let u;
+    try{u=new URL(wsUrl)}catch{throw new Error("Trading API returned an invalid WebSocket URL.")}
+    const hasOtp=u.searchParams.has("otp") && !!u.searchParams.get("otp");
+    const isCorrectEndpoint=/\/trading\/v1\/options\/ws\/(demo|real)$/i.test(u.pathname);
+    if(!hasOtp)throw new Error("Authenticated WebSocket URL is missing its one-time OTP.");
+    if(!isCorrectEndpoint)throw new Error("Authenticated WebSocket URL has an unexpected endpoint.");
+
+    log("Requesting authenticated "+(selectedAccount.is_demo?"DEMO":"REAL")+" trading connection...");
+    ws=new WebSocket(wsUrl);
+
+    ws.onopen=()=>{
+      clearTradingTimers();
+      log((selectedAccount.is_demo?"DEMO":"REAL")+" trading WebSocket authenticated and open.");
+      $("startBtn").disabled=false;
+
+      // Give the server a moment after the authenticated handshake, then use
+      // the documented balance subscription. This also makes failures easier to diagnose.
+      tradingHandshakeTimer=setTimeout(()=>{
+        if(!ws||ws.readyState!==WebSocket.OPEN)return;
+        try{
+          send({balance:1,subscribe:1,req_id:++requestId});
+          log("Trading channel ready • balance subscription sent.");
+        }catch(e){log("Trading setup error: "+e.message,"loss");}
+      },250);
+
+      // Keep the authenticated socket alive.
+      tradingPingTimer=setInterval(()=>{
+        if(ws&&ws.readyState===WebSocket.OPEN){try{send({ping:1,req_id:++requestId})}catch{}}
+      },30000);
+    };
+
+    ws.onmessage=e=>{
+      try{
+        const msg=JSON.parse(e.data);
+        if(msg.error){log("Deriv trading error: "+(msg.error.message||"Request rejected"),"loss");return;}
+        handleTradingMessage(msg);
+      }catch(err){log("Trading message error: "+err.message,"loss");}
+    };
+
+    ws.onerror=()=>log("Trading WebSocket error. Checking the authenticated connection...","loss");
+    ws.onclose=e=>{
+      clearTradingTimers();
+      const reason=e&&e.reason?" • "+e.reason:"";
+      log("Trading connection closed"+(e&&e.code?" • code "+e.code:"")+reason,"loss");
+      $("startBtn").disabled=true;
+      $("stopBtn").disabled=true;
+      $("tradingConnectBtn").disabled=false;
+    };
+  }catch(e){
+    clearTradingTimers();
+    log("Trading connection error: "+e.message,"loss");
+    $("tradingConnectBtn").disabled=false;
+  }
 }
 function send(obj){if(!ws||ws.readyState!==WebSocket.OPEN)throw new Error("Trading WebSocket is not connected");ws.send(JSON.stringify(obj))}
 function startBot(){
