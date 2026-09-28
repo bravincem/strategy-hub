@@ -141,12 +141,12 @@ function updateBotStats(){
   $("statStepStake").textContent=`Over ${currentStep} • ${currentStake.toFixed(2)}`;
 }
 
-function connectPublicFeed(){
-  publicWs = new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
-  function marketName(symbol){
+function marketName(symbol){
   const names={"1HZ100V":"Volatility 100 (1s)","1HZ75V":"Volatility 75 (1s)","1HZ50V":"Volatility 50 (1s)","1HZ25V":"Volatility 25 (1s)"};
   return names[symbol]||symbol;
 }
+function connectPublicFeed(){
+  publicWs = new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
 function selectedMarket(){return $("market")?.value||"1HZ100V";}
 function syncMarketUI(){
   const name=marketName(selectedMarket());
