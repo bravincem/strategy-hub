@@ -1,1608 +1,1206 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Deriv Strategy Hub — V2</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deriv Strategy Hub - V3</title>
 
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f4f6fa;color:#172033}
-.top{height:64px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;padding:0 14px;gap:12px;position:sticky;top:0;z-index:20}
-.logo{font-weight:800;font-size:18px}
-.hamb{font-size:23px;cursor:pointer}
-.topright{margin-left:auto;display:flex;align-items:center;gap:7px}
-.status{font-size:12px;background:#eef1f6;color:#475569;padding:8px 10px;border-radius:20px;font-weight:800}
-.status.live{background:#eaf8ef;color:#17803d}
-.status.err{background:#fff0f0;color:#b42318}
-
-button{
-border:0;
-border-radius:9px;
-padding:10px 13px;
-font-weight:700;
-cursor:pointer
+*{
+  box-sizing:border-box;
 }
 
-.dark{background:#111827;color:#fff}
-.soft{background:#eef1f6;color:#172033}
-
-.layout{
-display:flex;
-min-height:calc(100vh - 64px)
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f5f6fa;
+  color:#172033;
 }
 
-.side{
-width:220px;
-background:#111827;
-color:#cbd5e1;
-padding:14px 10px;
-flex-shrink:0
-}
-
-.side h3{
-color:#fff;
-padding:0 10px;
-margin:8px 0 16px
-}
-
-.side button{
-width:100%;
-text-align:left;
-background:transparent;
-color:#cbd5e1;
-margin:2px 0
-}
-
-.side button.active,
-.side button:hover{
-background:#fff;
-color:#111827
-}
-
-.main{
-flex:1;
-max-width:1120px;
-margin:auto;
-padding:18px;
-width:100%
-}
-
-.page{display:none}
-.page.active{display:block}
-
-.cards{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:12px
-}
-
-.card{
-background:#fff;
-border:1px solid #e5e7eb;
-border-radius:15px;
-padding:16px;
-box-shadow:0 2px 10px #00000008
-}
-
-.card h3{margin:0 0 7px}
-.muted{color:#64748b;font-size:13px}
-
-.metric{
-font-size:23px;
-font-weight:800;
-margin-top:7px
-}
-
-.green{color:#16803c}
-.red{color:#c62828}
-
-.section{margin-top:16px}
-
-.sectiontitle{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:10px
-}
-
-.builder{
-display:grid;
-grid-template-columns:repeat(2,1fr);
-gap:12px
-}
-
-.field{
-display:flex;
-flex-direction:column;
-gap:6px
-}
-
-.field label{
-font-size:12px;
-font-weight:800
-}
-
-.field input,
-.field select{
-padding:11px;
-border:1px solid #d7dce5;
-border-radius:9px;
-background:#fff
-}
-
-.actions{
-display:flex;
-flex-wrap:wrap;
-gap:8px;
-margin-top:14px
-}
-
-.notice{
-background:#fff8df;
-border:1px solid #f0df9c;
-padding:12px;
-border-radius:12px
-}
-
-.log{
-background:#111827;
-color:#d1d5db;
-border-radius:12px;
-padding:12px;
-min-height:170px;
-max-height:280px;
-overflow:auto;
-font:12px monospace;
-margin-top:12px
-}
-
-.freegrid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:12px
-}
-
-.tickbox{
-display:flex;
-align-items:center;
-gap:10px;
-background:#111827;
-color:#fff;
-border-radius:12px;
-padding:12px;
-margin-top:12px
-}
-
-.tickdigit{
-font-size:28px;
-font-weight:900;
-margin-left:auto
-}
-
-.bottom{display:none}
-
-@media(max-width:760px){
-
-.side{
-display:none;
-position:fixed;
-left:0;
-top:64px;
-bottom:0;
-z-index:30;
-width:230px
-}
-
-.main{padding:12px}
-
-.cards{
-grid-template-columns:1fr 1fr
-}
-
-.builder{
-grid-template-columns:1fr
-}
-
-.freegrid{
-grid-template-columns:1fr 1fr
-}
-
-.topright .status{
-display:none
+.topbar{
+  height:68px;
+  background:#fff;
+  border-bottom:1px solid #e5e7eb;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 28px;
 }
 
 .logo{
-font-size:16px
+  font-size:20px;
+  font-weight:800;
 }
 
-.bottom{
-display:block;
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-background:#111827;
-color:#fff;
-text-align:center;
-padding:8px;
-font-size:11px;
-z-index:20
+.top-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
 }
 
+.status{
+  padding:9px 13px;
+  border-radius:20px;
+  font-size:13px;
+  font-weight:700;
+  background:#eef2f7;
+}
+
+.status.live{
+  background:#e8f8ef;
+  color:#138a4b;
+}
+
+button{
+  border:0;
+  border-radius:9px;
+  padding:11px 17px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.connect{
+  background:#ff4d5a;
+  color:#fff;
+}
+
+.disconnect{
+  background:#202938;
+  color:#fff;
+}
+
+.sidebar{
+  position:fixed;
+  left:0;
+  top:68px;
+  bottom:0;
+  width:180px;
+  background:#111827;
+  color:#fff;
+  padding-top:20px;
+}
+
+.nav-item{
+  padding:15px 18px;
+  font-size:14px;
+  color:#cbd5e1;
+}
+
+.nav-item.active{
+  background:#fff;
+  color:#172033;
+  border-radius:0 9px 9px 0;
+  font-weight:700;
+}
+
+.main{
+  margin-left:180px;
+  padding:35px;
+  max-width:1300px;
+}
+
+.header-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+}
+
+h1{
+  margin:0 0 7px;
+  font-size:29px;
+}
+
+.subtitle{
+  color:#718096;
+}
+
+.card-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:16px;
+  margin-bottom:18px;
+}
+
+.card{
+  background:#fff;
+  border:1px solid #e6e9ef;
+  border-radius:14px;
+  padding:20px;
+  box-shadow:0 2px 8px rgba(0,0,0,.03);
+}
+
+.card-title{
+  font-size:13px;
+  color:#718096;
+  margin-bottom:9px;
+}
+
+.card-value{
+  font-size:24px;
+  font-weight:800;
+}
+
+.market-card{
+  background:#10194a;
+  color:#fff;
+  border-radius:14px;
+  padding:20px;
+  margin-bottom:20px;
+}
+
+.market-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.market-name{
+  font-weight:800;
+  font-size:17px;
+}
+
+.quote{
+  font-size:28px;
+  font-weight:800;
+}
+
+.small{
+  font-size:12px;
+  opacity:.75;
+  margin-top:5px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1.2fr .8fr;
+  gap:18px;
+}
+
+.section-title{
+  font-size:18px;
+  font-weight:800;
+  margin-bottom:15px;
+}
+
+.control{
+  margin-bottom:16px;
+}
+
+label{
+  display:block;
+  font-size:13px;
+  font-weight:700;
+  margin-bottom:7px;
+}
+
+input,select{
+  width:100%;
+  padding:12px;
+  border:1px solid #d8dde7;
+  border-radius:9px;
+  background:#fff;
+  font-size:14px;
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.primary{
+  width:100%;
+  background:#172033;
+  color:#fff;
+  padding:14px;
+}
+
+.demo-badge{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:7px;
+  background:#e8f8ef;
+  color:#138a4b;
+  font-size:12px;
+  font-weight:800;
+}
+
+.off-badge{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:7px;
+  background:#fff1f2;
+  color:#d92d3b;
+  font-size:12px;
+  font-weight:800;
+}
+
+.notice{
+  margin-top:18px;
+  background:#fff8e6;
+  border:1px solid #f2dfaa;
+  padding:15px;
+  border-radius:10px;
+  font-size:13px;
+  line-height:1.5;
+}
+
+.connection-box{
+  margin-bottom:20px;
+}
+
+.account-number{
+  font-weight:800;
+  margin-top:8px;
+}
+
+.activity{
+  min-height:180px;
+  font-size:13px;
+  color:#718096;
+}
+
+.activity div{
+  padding:8px 0;
+  border-bottom:1px solid #edf0f4;
+}
+
+@media(max-width:900px){
+  .sidebar{
+    display:none;
+  }
+
+  .main{
+    margin-left:0;
+    padding:20px;
+  }
+
+  .card-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:600px){
+  .topbar{
+    padding:0 15px;
+  }
+
+  .logo{
+    font-size:16px;
+  }
+
+  .card-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .header-row{
+    align-items:flex-start;
+    gap:10px;
+  }
+
+  h1{
+    font-size:24px;
+  }
 }
 </style>
 </head>
 
 <body>
 
-<header class="top">
+<header class="topbar">
+  <div class="logo">Deriv Strategy Hub</div>
 
-<span class="hamb" onclick="toggleSide()">☰</span>
-
-<span class="logo">
-Deriv Strategy Hub
-</span>
-
-<div class="topright">
-
-<span id="conn" class="status">
-● OFFLINE
-</span>
-
-<button class="soft" onclick="connectMarket()">
-Market
-</button>
-
-<button class="dark"
-onclick="alert('Live account trading is not enabled in V2. We will add authenticated demo trading after the market feed is verified.')">
-Log in
-</button>
-
-</div>
-
+  <div class="top-actions">
+    <span id="connectionStatus" class="status">● Offline</span>
+    <button id="connectBtn" class="connect" onclick="connectDeriv()">
+      Connect Deriv Demo
+    </button>
+    <button id="disconnectBtn" class="disconnect"
+            onclick="disconnectDeriv()" style="display:none">
+      Disconnect
+    </button>
+  </div>
 </header>
 
-
-<div class="layout">
-
-<aside class="side" id="side">
-
-<h3>Strategy Hub</h3>
-
-<button class="active"
-onclick="show('dashboard',this)">
-⌂ Dashboard
-</button>
-
-<button onclick="show('builder',this)">
-⚡ Bot Builder
-</button>
-
-<button onclick="show('free',this)">
-🤖 Free Bots
-</button>
-
-<button onclick="show('signals',this)">
-✦ Signals
-</button>
-
-<button onclick="show('results',this)">
-▣ Results
-</button>
-
-<button onclick="show('journal',this)">
-▤ Trade Log
-</button>
-
+<aside class="sidebar">
+  <div class="nav-item active">Dashboard</div>
+  <div class="nav-item">Bot Builder</div>
+  <div class="nav-item">Free Bots</div>
+  <div class="nav-item">Signals</div>
+  <div class="nav-item">Results</div>
+  <div class="nav-item">Trade Log</div>
 </aside>
-
 
 <main class="main">
 
-
-<section id="dashboard" class="page active">
-
-<div class="sectiontitle">
-
-<div>
-<h2 style="margin:0">
-Dashboard
-</h2>
-
-<p class="muted">
-Live market-data strategy workspace
-</p>
-</div>
-
-<button class="dark"
-onclick="show('builder',document.querySelectorAll('.side button')[1])">
-+ Build Bot
-</button>
-
-</div>
-
-
-<div class="cards">
-
-<div class="card">
-
-<div class="muted">
-Market Feed
-</div>
-
-<div class="metric green"
-id="dfeed">
-OFFLINE
-</div>
-
-</div>
-
-
-<div class="card">
-
-<div class="muted">
-Last Digit
-</div>
-
-<div class="metric"
-id="ddigit">
-—
-</div>
-
-</div>
-
-
-<div class="card">
-
-<div class="muted">
-Demo P/L
-</div>
-
-<div class="metric"
-id="dpnl">
-$0.00
-</div>
-
-</div>
-
-
-<div class="card">
-
-<div class="muted">
-Win Rate
-</div>
-
-<div class="metric"
-id="dwinrate">
-0%
-</div>
-
-</div>
-
-</div>
-
-
-<div class="tickbox">
-
-<div>
-
-<b>
-Volatility 100 (1s)
-</b>
-
-<div id="quote"
-class="muted"
-style="color:#cbd5e1">
-
-Waiting for live tick...
-
-</div>
-
-</div>
-
-<div class="tickdigit"
-id="bigdigit">
-—
-</div>
-
-</div>
-
-
-<div class="section">
-
-<div class="sectiontitle">
-
-<h3 style="margin:0">
-Quick Actions
-</h3>
-
-</div>
-
-
-<div class="cards">
-
-<div class="card"
-onclick="show('builder',document.querySelectorAll('.side button')[1])">
-
-<h3>⚡ Quick Start</h3>
-
-<p class="muted">
-Configure Over 1 / Under 8.
-</p>
-
-</div>
-
-
-<div class="card"
-onclick="runBacktest()">
-
-<h3>📊 Backtest</h3>
-
-<p class="muted">
-Test the strategy with live-tick samples.
-</p>
-
-</div>
-
-
-<div class="card"
-onclick="show('free',document.querySelectorAll('.side button')[2])">
-
-<h3>🤖 Free Bots</h3>
-
-<p class="muted">
-Ready-made demo presets.
-</p>
-
-</div>
-
-
-<div class="card"
-onclick="newSignal()">
-
-<h3>✦ Signal</h3>
-
-<p class="muted">
-Generate a rule-based demo signal.
-</p>
-
-</div>
-
-</div>
-
-</div>
-
-
-<div class="section notice">
-
-<b>V2 safety:</b>
-
-The market feed is real Deriv public data, but the bot result engine is still a simulation.
-
-It does not place trades or use real account money.
-
-</div>
-
-</section>
-
-
-<section id="builder" class="page">
-
-<div class="sectiontitle">
-
-<div>
-
-<h2 style="margin:0">
-Bot Builder
-</h2>
-
-<p class="muted">
-Use real ticks for strategy testing.
-</p>
-
-</div>
-
-<span class="status">
-● LIVE DATA / DEMO TRADES
-</span>
-
-</div>
-
-
-<div class="card builder">
-
-
-<div class="field">
-
-<label>
-MARKET
-</label>
-
-<select id="market">
-
-<option value="1HZ100V">
-Volatility 100 (1s)
-</option>
-
-<option value="1HZ25V">
-Volatility 25 (1s)
-</option>
-
-<option value="1HZ50V">
-Volatility 50 (1s)
-</option>
-
-<option value="1HZ75V">
-Volatility 75 (1s)
-</option>
-
-</select>
-
-</div>
-
-
-<div class="field">
-
-<label>
-CONTRACT RULE
-</label>
-
-<select id="contract">
-
-<option>
-Over 1
-</option>
-
-<option>
-Under 8
-</option>
-
-<option>
-Rise
-</option>
-
-<option>
-Fall
-</option>
-
-</select>
-
-</div>
-
-
-<div class="field">
-
-<label>
-DURATION
-</label>
-
-<select>
-
-<option>
-1 tick
-</option>
-
-</select>
-
-</div>
-
-
-<div class="field">
-
-<label>
-STAKE ($)
-</label>
-
-<input
-id="stake"
-type="number"
-min=".35"
-step=".01"
-value="1">
-
-</div>
-
-
-<div class="field">
-
-<label>
-MARTINGALE
-</label>
-
-<input
-id="mg"
-type="number"
-min="1"
-step=".1"
-value="2">
-
-</div>
-
-
-<div class="field">
-
-<label>
-MAX STEPS
-</label>
-
-<select id="steps">
-
-<option>4</option>
-<option>3</option>
-<option>5</option>
-<option>6</option>
-
-</select>
-
-</div>
-
-</div>
-
-
-<div class="actions">
-
-<button class="dark"
-onclick="startBot()">
-▶ Start Demo
-</button>
-
-<button class="soft"
-onclick="stopBot()">
-■ Stop
-</button>
-
-<button class="soft"
-onclick="runBacktest()">
-Backtest Samples
-</button>
-
-<button class="soft"
-onclick="clearLog()">
-Clear
-</button>
-
-<button class="soft"
-onclick="connectMarket()">
-Reconnect Feed
-</button>
-
-</div>
-
-
-<div class="cards section">
-
-
-<div class="card">
-
-<div class="muted">
-Simulated Balance
-</div>
-
-<div class="metric"
-id="balance">
-$100.00
-</div>
-
-</div>
-
-
-<div class="card">
-
-<div class="muted">
-Wins
-</div>
-
-<div class="metric green"
-id="wins">
-0
-</div>
-
-</div>
-
-
-<div class="card">
-
-<div class="muted">
-Losses
-</div>
-
-<div class="metric red"
-id="losses">
-0
-</div>
-
-</div>
-
-
-<div class="card">
-
-<div class="muted">
-Net P/L
-</div>
-
-<div class="metric"
-id="pnl">
-$0.00
-</div>
-
-</div>
-
-</div>
-
-
-<div id="log" class="log">
-
-V2 ready.
-
-Connect the market feed, then start the demo strategy.
-
-</div>
-
-</section>
-
-
-<section id="free" class="page">
-
-<h2>
-Free Bots
-</h2>
-
-<p class="muted">
-Presets use live tick data but do not place real trades.
-</p>
-
-
-<div class="freegrid">
-
-
-<div class="card">
-
-<h3>
-Over 1
-</h3>
-
-<p class="muted">
-1 tick • Martingale 2
-</p>
-
-<button class="dark"
-onclick="loadPreset('Over 1')">
-Use Bot
-</button>
-
-</div>
-
-
-<div class="card">
-
-<h3>
-Under 8
-</h3>
-
-<p class="muted">
-1 tick • Martingale 2
-</p>
-
-<button class="dark"
-onclick="loadPreset('Under 8')">
-Use Bot
-</button>
-
-</div>
-
-
-<div class="card">
-
-<h3>
-Rise
-</h3>
-
-<p class="muted">
-1 tick • Demo
-</p>
-
-<button class="dark"
-onclick="loadPreset('Rise')">
-Use Bot
-</button>
-
-</div>
-
-
-<div class="card">
-
-<h3>
-Fall
-</h3>
-
-<p class="muted">
-1 tick • Demo
-</p>
-
-<button class="dark"
-onclick="loadPreset('Fall')">
-Use Bot
-</button>
-
-</div>
-
-</div>
-
-</section>
-
-
-<section id="signals" class="page">
-
-<h2>
-Signals
-</h2>
-
-<div class="card">
-
-<p id="signal">
-Waiting for a signal.
-</p>
-
-<button class="dark"
-onclick="newSignal()">
-Generate Signal
-</button>
-
-</div>
-
-</section>
-
-
-<section id="results" class="page">
-
-<h2>
-Results
-</h2>
-
-<div class="cards">
-
-
-<div class="card">
-
-<div class="muted">
-Trades
-</div>
-
-<div class="metric"
-id="total">
-0
-</div>
-
-</div>
-
-
-<div class="card">
-
-<div class="muted">
-Wins
-</div>
-
-<div class="metric green"
-id="rwins">
-0
-</div>
-
-</div>
-
-
-<div class="card">
-
-<div class="muted">
-Losses
-</div>
-
-<div class="metric red"
-id="rlosses">
-0
-</div>
-
-</div>
-
-
-<div class="card">
-
-<div class="muted">
-Net P/L
-</div>
-
-<div class="metric"
-id="rpnl">
-$0.00
-</div>
-
-</div>
-
-</div>
-
-
-<div class="section notice">
-
-These are simulated results calculated from live market ticks.
-
-They are not actual Deriv contract payouts.
-
-</div>
-
-</section>
-
-
-<section id="journal" class="page">
-
-<h2>
-Trade Log
-</h2>
-
-<div class="card">
-
-<p class="muted">
-Open Bot Builder to view the detailed tick-by-tick log.
-</p>
-
-<button class="dark"
-onclick="show('builder',document.querySelectorAll('.side button')[1])">
-Open Log
-</button>
-
-</div>
-
-</section>
+  <div class="header-row">
+    <div>
+      <h1>Dashboard</h1>
+      <div class="subtitle">
+        Live Deriv market-data and demo trading workspace
+      </div>
+    </div>
+  </div>
+
+  <section class="card connection-box">
+    <div class="section-title">Deriv Account</div>
+
+    <div id="accountDisconnected">
+      <span class="off-badge">NOT CONNECTED</span>
+      <p class="subtitle">
+        Connect your Deriv account to load your demo account information.
+      </p>
+    </div>
+
+    <div id="accountConnected" style="display:none">
+      <span class="demo-badge">DEMO CONNECTED</span>
+      <div class="account-number" id="accountNumber">
+        Account connected
+      </div>
+    </div>
+  </section>
+
+  <section class="card-grid">
+
+    <div class="card">
+      <div class="card-title">Market Feed</div>
+      <div class="card-value" id="feedStatus">CONNECTING</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Last Digit</div>
+      <div class="card-value" id="lastDigit">-</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Demo Balance</div>
+      <div class="card-value" id="balance">$0.00</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Bot Status</div>
+      <div class="card-value" id="botStatus">READY</div>
+    </div>
+
+  </section>
+
+  <section class="market-card">
+
+    <div class="market-top">
+      <div>
+        <div class="market-name" id="marketName">
+          Volatility 100 (1s)
+        </div>
+
+        <div class="small">
+          Live Deriv public market feed
+        </div>
+      </div>
+
+      <div class="quote" id="quote">
+        --
+      </div>
+    </div>
+
+    <div class="small" id="tickTime">
+      Waiting for tick...
+    </div>
+
+  </section>
+
+  <div class="grid">
+
+    <section class="card">
+
+      <div class="section-title">
+        Bot Builder
+      </div>
+
+      <div class="row">
+
+        <div class="control">
+          <label>Market</label>
+
+          <select id="marketSelect">
+            <option value="1HZ100V">
+              Volatility 100 (1s)
+            </option>
+
+            <option value="1HZ25V">
+              Volatility 25 (1s)
+            </option>
+
+            <option value="1HZ50V">
+              Volatility 50 (1s)
+            </option>
+
+            <option value="1HZ75V">
+              Volatility 75 (1s)
+            </option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label>Contract</label>
+
+          <select id="contractType">
+            <option value="OVER">Over</option>
+            <option value="UNDER">Under</option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="row">
+
+        <div class="control">
+          <label>Duration</label>
+
+          <select id="duration">
+            <option value="1">1 Tick</option>
+          </select>
+        </div>
+
+        <div class="control">
+          <label>Stake</label>
+
+          <input
+            id="stake"
+            type="number"
+            min="0.35"
+            step="0.01"
+            value="1.00"
+          >
+        </div>
+
+      </div>
+
+      <div class="row">
+
+        <div class="control">
+          <label>Martingale</label>
+
+          <input
+            id="martingale"
+            type="number"
+            min="1"
+            step="0.1"
+            value="2"
+          >
+        </div>
+
+        <div class="control">
+          <label>Maximum Steps</label>
+
+          <input
+            id="maxSteps"
+            type="number"
+            min="1"
+            max="20"
+            value="5"
+          >
+        </div>
+
+      </div>
+
+      <button class="primary" onclick="prepareDemoBot()">
+        Prepare Demo Bot
+      </button>
+
+      <div class="notice">
+        <strong>Demo safety:</strong>
+        This version does not place a real-money trade.
+        The connection is being prepared for the authenticated
+        Deriv demo environment first.
+      </div>
+
+    </section>
+
+    <section class="card">
+
+      <div class="section-title">
+        Activity
+      </div>
+
+      <div id="activity" class="activity">
+        <div>System started.</div>
+        <div>Waiting for Deriv demo connection.</div>
+      </div>
+
+    </section>
+
+  </div>
 
 </main>
 
-</div>
-
-
-<div class="bottom">
-LIVE MARKET DATA • DEMO STRATEGY • 1 TICK
-</div>
-
-
 <script>
 
-let ws=null;
-let feedConnected=false;
-let running=false;
+const CLIENT_ID = "34vpUz6M3UPU3N8xphNJp";
 
-let balance=100;
-let wins=0;
-let losses=0;
-let pnl=0;
-let total=0;
-let step=0;
+const API_BASE =
+  "https://deriv-strategy-api.bravincem.workers.dev";
 
-let lastTick=null;
-let tickSamples=[];
+const REDIRECT_URI =
+  "https://deriv-strategy-api.bravincem.workers.dev/auth/callback";
 
+const FRONTEND_URL =
+  "https://bravincem.github.io/strategy-hub/";
 
-const payout=.95;
+const SESSION_KEY = "deriv_strategy_session";
 
+let ws = null;
+let currentSymbol = "1HZ100V";
+let currentQuote = null;
 
-function show(id,btn){
+function logActivity(message){
 
-document
-.querySelectorAll('.page')
-.forEach(x=>x.classList.remove('active'));
+  const box = document.getElementById("activity");
 
-document
-.getElementById(id)
-.classList.add('active');
+  const item = document.createElement("div");
 
-document
-.querySelectorAll('.side button')
-.forEach(x=>x.classList.remove('active'));
+  item.textContent =
+    new Date().toLocaleTimeString() + " — " + message;
 
-if(btn){
-btn.classList.add('active');
+  box.prepend(item);
+
+  while(box.children.length > 8){
+    box.removeChild(box.lastChild);
+  }
 }
 
-if(window.innerWidth<=760){
+function randomHex(bytes = 32){
 
-document.getElementById('side')
-.style.display='none';
+  const array =
+    crypto.getRandomValues(
+      new Uint8Array(bytes)
+    );
 
+  return Array.from(array)
+    .map(
+      b => b.toString(16).padStart(2,"0")
+    )
+    .join("");
 }
 
+function base64Url(buffer){
+
+  let binary = "";
+
+  const bytes =
+    new Uint8Array(buffer);
+
+  bytes.forEach(
+    byte => {
+      binary +=
+        String.fromCharCode(byte);
+    }
+  );
+
+  return btoa(binary)
+    .replace(/\+/g,"-")
+    .replace(/\//g,"_")
+    .replace(/=+$/,"");
 }
 
+async function createPKCE(){
 
-function toggleSide(){
+  const verifier = randomHex(48);
 
-const s=document.getElementById('side');
+  const digest =
+    await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(verifier)
+    );
 
-s.style.display=
-s.style.display==='block'
-?'none'
-:'block';
+  const challenge =
+    base64Url(digest);
 
+  return {
+    verifier,
+    challenge
+  };
 }
 
+async function connectDeriv(){
 
-function setConn(text,cls=''){
+  try{
 
-const c=document.getElementById('conn');
+    logActivity(
+      "Starting secure Deriv OAuth connection..."
+    );
 
-c.textContent=text;
+    const response =
+      await fetch(
+        API_BASE + "/auth/start",
+        {
+          redirect:"manual"
+        }
+      );
 
-c.className='status '+cls;
+    /*
+      Cloudflare may return an OAuth redirect.
+      If the browser exposes the Location header,
+      use it. Otherwise use the Worker URL directly.
+    */
 
-document.getElementById('dfeed')
-.textContent=text.replace('● ','');
+    if(
+      response.type === "opaqueredirect" ||
+      response.status === 0
+    ){
+      window.location.href =
+        API_BASE + "/auth/start";
+
+      return;
+    }
+
+    if(
+      response.status >= 300 &&
+      response.status < 400
+    ){
+
+      const location =
+        response.headers.get("Location");
+
+      if(location){
+        window.location.href = location;
+        return;
+      }
+    }
+
+    /*
+      Fallback:
+      direct navigation to the Worker.
+    */
+
+    window.location.href =
+      API_BASE + "/auth/start";
+
+  }catch(error){
+
+    logActivity(
+      "Connection error: " +
+      error.message
+    );
+
+    /*
+      Direct navigation is still safe because
+      the Worker generates state and PKCE.
+    */
+
+    window.location.href =
+      API_BASE + "/auth/start";
+  }
 }
 
+async function loadAccount(){
 
-function connectMarket(){
+  const session =
+    localStorage.getItem(
+      SESSION_KEY
+    );
 
-if(ws){
+  if(!session){
 
-try{
-ws.close();
-}catch(e){}
+    setDisconnected();
 
+    return;
+  }
+
+  try{
+
+    const response =
+      await fetch(
+        API_BASE + "/api/balance",
+        {
+          headers:{
+            Authorization:
+              "Bearer " + session
+          }
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(
+      !response.ok ||
+      !result.ok
+    ){
+
+      throw new Error(
+        result.error ||
+        "Unable to load demo account."
+      );
+    }
+
+    setConnected();
+
+    displayBalance(
+      result.data
+    );
+
+    logActivity(
+      "Demo account connected."
+    );
+
+  }catch(error){
+
+    localStorage.removeItem(
+      SESSION_KEY
+    );
+
+    setDisconnected();
+
+    logActivity(
+      "Demo session expired or unavailable."
+    );
+  }
 }
 
+function displayBalance(data){
 
-const symbol=
-document.getElementById('market').value;
+  let balanceValue = null;
 
+  let accountNumber = null;
 
-setConn('● CONNECTING');
+  /*
+    Deriv account responses can contain
+    account information in different nested
+    structures, so search common fields.
+  */
 
+  if(Array.isArray(data)){
 
-ws=new WebSocket(
-'wss://api.derivws.com/trading/v1/options/ws/public'
+    for(const account of data){
+
+      if(
+        account.account_type === "demo" ||
+        account.is_virtual === true
+      ){
+
+        balanceValue =
+          account.balance ??
+          account.available_balance ??
+          balanceValue;
+
+        accountNumber =
+          account.loginid ??
+          account.account_id ??
+          account.id ??
+          accountNumber;
+
+        if(balanceValue !== null){
+          break;
+        }
+      }
+    }
+
+    if(balanceValue === null && data[0]){
+
+      balanceValue =
+        data[0].balance ??
+        data[0].available_balance ??
+        null;
+
+      accountNumber =
+        data[0].loginid ??
+        data[0].account_id ??
+        data[0].id ??
+        null;
+    }
+  }
+
+  if(
+    data &&
+    typeof data === "object"
+  ){
+
+    balanceValue =
+      balanceValue ??
+      data.balance ??
+      data.available_balance ??
+      data.account?.balance ??
+      null;
+
+    accountNumber =
+      accountNumber ??
+      data.loginid ??
+      data.account_id ??
+      data.account?.loginid ??
+      null;
+  }
+
+  if(balanceValue !== null){
+
+    document.getElementById(
+      "balance"
+    ).textContent =
+      "$" +
+      Number(balanceValue)
+        .toFixed(2);
+  }else{
+
+    document.getElementById(
+      "balance"
+    ).textContent =
+      "Connected";
+  }
+
+  if(accountNumber){
+
+    document.getElementById(
+      "accountNumber"
+    ).textContent =
+      "Demo account: " +
+      accountNumber;
+  }
+}
+
+function setConnected(){
+
+  document.getElementById(
+    "connectionStatus"
+  ).textContent =
+    "● Demo Connected";
+
+  document.getElementById(
+    "connectionStatus"
+  ).classList.add("live");
+
+  document.getElementById(
+    "connectBtn"
+  ).style.display =
+    "none";
+
+  document.getElementById(
+    "disconnectBtn"
+  ).style.display =
+    "inline-block";
+
+  document.getElementById(
+    "accountDisconnected"
+  ).style.display =
+    "none";
+
+  document.getElementById(
+    "accountConnected"
+  ).style.display =
+    "block";
+}
+
+function setDisconnected(){
+
+  document.getElementById(
+    "connectionStatus"
+  ).textContent =
+    "● Offline";
+
+  document.getElementById(
+    "connectionStatus"
+  ).classList.remove("live");
+
+  document.getElementById(
+    "connectBtn"
+  ).style.display =
+    "inline-block";
+
+  document.getElementById(
+    "disconnectBtn"
+  ).style.display =
+    "none";
+
+  document.getElementById(
+    "accountDisconnected"
+  ).style.display =
+    "block";
+
+  document.getElementById(
+    "accountConnected"
+  ).style.display =
+    "none";
+
+  document.getElementById(
+    "balance"
+  ).textContent =
+    "$0.00";
+}
+
+async function disconnectDeriv(){
+
+  const session =
+    localStorage.getItem(
+      SESSION_KEY
+    );
+
+  if(session){
+
+    try{
+
+      await fetch(
+        API_BASE + "/api/logout",
+        {
+          headers:{
+            Authorization:
+              "Bearer " + session
+          }
+        }
+      );
+
+    }catch(error){
+
+      console.log(error);
+    }
+  }
+
+  localStorage.removeItem(
+    SESSION_KEY
+  );
+
+  setDisconnected();
+
+  logActivity(
+    "Disconnected from Deriv."
+  );
+}
+
+function connectMarket(symbol){
+
+  currentSymbol = symbol;
+
+  if(ws){
+
+    try{
+      ws.close();
+    }catch(error){}
+  }
+
+  document.getElementById(
+    "feedStatus"
+  ).textContent =
+    "CONNECTING";
+
+  ws =
+    new WebSocket(
+      "wss://api.derivws.com/trading/v1/options/ws/public"
+    );
+
+  ws.onopen = function(){
+
+    document.getElementById(
+      "feedStatus"
+    ).textContent =
+      "LIVE";
+
+    logActivity(
+      "Live market feed connected."
+    );
+
+    ws.send(
+      JSON.stringify({
+        ticks:symbol,
+        subscribe:1
+      })
+    );
+  };
+
+  ws.onmessage = function(event){
+
+    try{
+
+      const data =
+        JSON.parse(event.data);
+
+      if(data.tick){
+
+        const quote =
+          data.tick.quote;
+
+        currentQuote =
+          quote;
+
+        document.getElementById(
+          "quote"
+        ).textContent =
+          Number(quote)
+            .toFixed(2);
+
+        const priceString =
+          String(quote);
+
+        const digit =
+          priceString
+            .replace(".","")
+            .slice(-1);
+
+        document.getElementById(
+          "lastDigit"
+        ).textContent =
+          digit;
+
+        document.getElementById(
+          "tickTime"
+        ).textContent =
+          "Last tick: " +
+          new Date()
+            .toLocaleTimeString();
+      }
+
+    }catch(error){
+
+      console.log(error);
+    }
+  };
+
+  ws.onerror = function(){
+
+    document.getElementById(
+      "feedStatus"
+    ).textContent =
+      "ERROR";
+
+    logActivity(
+      "Market feed error."
+    );
+  };
+
+  ws.onclose = function(){
+
+    document.getElementById(
+      "feedStatus"
+    ).textContent =
+      "OFFLINE";
+  };
+}
+
+function prepareDemoBot(){
+
+  const market =
+    document.getElementById(
+      "marketSelect"
+    ).value;
+
+  const contract =
+    document.getElementById(
+      "contractType"
+    ).value;
+
+  const stake =
+    document.getElementById(
+      "stake"
+    ).value;
+
+  const martingale =
+    document.getElementById(
+      "martingale"
+    ).value;
+
+  const maxSteps =
+    document.getElementById(
+      "maxSteps"
+    ).value;
+
+  document.getElementById(
+    "botStatus"
+  ).textContent =
+    "READY";
+
+  logActivity(
+    "Demo bot configured: " +
+    market +
+    " / " +
+    contract +
+    " / 1 tick / $" +
+    stake +
+    " / MG " +
+    martingale +
+    " / " +
+    maxSteps +
+    " steps."
+  );
+}
+
+document.getElementById(
+  "marketSelect"
+).addEventListener(
+  "change",
+  function(){
+
+    const symbol =
+      this.value;
+
+    const name =
+      this.options[
+        this.selectedIndex
+      ].text;
+
+    document.getElementById(
+      "marketName"
+    ).textContent =
+      name;
+
+    connectMarket(symbol);
+  }
 );
 
+/*
+  Handle the session returned by
+  the Cloudflare Worker.
+*/
 
-ws.onopen=()=>{
+function handleOAuthReturn(){
 
-setConn('● LIVE','live');
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
 
-ws.send(
-JSON.stringify({
-ticks:symbol,
-subscribe:1,
-req_id:1
-})
+  const session =
+    params.get("session");
+
+  const connected =
+    params.get(
+      "deriv_connected"
+    );
+
+  if(
+    connected === "1" &&
+    session
+  ){
+
+    localStorage.setItem(
+      SESSION_KEY,
+      session
+    );
+
+    /*
+      Remove OAuth parameters from
+      the visible browser URL.
+    */
+
+    window.history.replaceState(
+      {},
+      document.title,
+      FRONTEND_URL
+    );
+
+    logActivity(
+      "OAuth login completed."
+    );
+  }
+
+  loadAccount();
+}
+
+connectMarket(
+  currentSymbol
 );
 
-add(
-'Live feed connected: '+symbol
-);
-
-};
-
-
-ws.onmessage=(ev)=>{
-
-try{
-
-const data=JSON.parse(ev.data);
-
-
-if(
-data.msg_type==='tick'
-&&
-data.tick
-){
-
-handleTick(data.tick);
-
-}
-
-
-if(data.error){
-
-setConn('● ERROR','err');
-
-add(
-'Feed error: '+
-data.error.message
-);
-
-}
-
-}catch(e){}
-
-};
-
-
-ws.onerror=()=>{
-
-setConn('● ERROR','err');
-
-add(
-'WebSocket error. Try Reconnect Feed.'
-);
-
-};
-
-
-ws.onclose=()=>{
-
-if(feedConnected){
-
-feedConnected=false;
-
-setConn('● OFFLINE');
-
-}
-
-};
-
-}
-
-
-function getLastDigit(quote){
-
-const s=String(quote);
-
-const cleaned=
-s.replace(/[^0-9]/g,'');
-
-return cleaned.length
-?Number(cleaned.slice(-1))
-:null;
-
-}
-
-
-function handleTick(tick){
-
-feedConnected=true;
-
-lastTick=tick;
-
-const d=
-getLastDigit(tick.quote);
-
-if(d===null)
-return;
-
-
-tickSamples.push(d);
-
-
-if(tickSamples.length>500)
-tickSamples.shift();
-
-
-document.getElementById('quote')
-.textContent=
-'Live quote: '+
-tick.quote+
-' • '+
-new Date(
-tick.epoch*1000
-).toLocaleTimeString();
-
-
-document.getElementById('ddigit')
-.textContent=d;
-
-document.getElementById('bigdigit')
-.textContent=d;
-
-
-if(running)
-processLiveTrade(d);
-
-}
-
-
-function ruleWin(d,c){
-
-if(c==='Over 1')
-return d>1;
-
-if(c==='Under 8')
-return d<8;
-
-if(c==='Rise')
-return d>=5;
-
-if(c==='Fall')
-return d<5;
-
-return false;
-
-}
-
-
-function processLiveTrade(d){
-
-const base=
-parseFloat(
-document.getElementById('stake').value
-)||1;
-
-
-const mg=
-parseFloat(
-document.getElementById('mg').value
-)||2;
-
-
-const max=
-parseInt(
-document.getElementById('steps').value
-)||4;
-
-
-const c=
-document.getElementById('contract').value;
-
-
-const st=
-base*Math.pow(mg,step);
-
-
-const ok=
-ruleWin(d,c);
-
-
-total++;
-
-
-if(ok){
-
-const profit=
-st*payout;
-
-balance+=profit;
-
-pnl+=profit;
-
-wins++;
-
-step=0;
-
-
-add(
-'LIVE TICK • WIN • '+
-c+
-' • digit '+
-d+
-' • simulated P/L +$'+
-profit.toFixed(2)
-);
-
-}else{
-
-balance-=st;
-
-pnl-=st;
-
-losses++;
-
-step=
-step+1>=max
-?0
-:step+1;
-
-
-add(
-'LIVE TICK • LOSS • '+
-c+
-' • digit '+
-d+
-' • simulated P/L -$'+
-st.toFixed(2)+
-' • next step '+
-step
-);
-
-}
-
-
-update();
-
-}
-
-
-function startBot(){
-
-if(running)
-return;
-
-
-if(
-!ws ||
-ws.readyState!==WebSocket.OPEN
-){
-
-add(
-'Connect the market feed first.'
-);
-
-connectMarket();
-
-return;
-
-}
-
-
-running=true;
-
-
-add(
-'Demo strategy started using live market ticks.'
-);
-
-}
-
-
-function stopBot(){
-
-running=false;
-
-add(
-'Demo strategy stopped.'
-);
-
-}
-
-
-function add(s){
-
-const l=
-document.getElementById('log');
-
-l.innerHTML+=
-'<br>'+s;
-
-l.scrollTop=
-l.scrollHeight;
-
-}
-
-
-function clearLog(){
-
-document.getElementById('log')
-.innerHTML=
-'Log cleared.';
-
-}
-
-
-function update(){
-
-const wr=
-total
-?((wins/total)*100).toFixed(1)
-:'0';
-
-
-document.getElementById('balance')
-.textContent=
-'$'+balance.toFixed(2);
-
-
-document.getElementById('wins')
-.textContent=wins;
-
-
-document.getElementById('losses')
-.textContent=losses;
-
-
-document.getElementById('pnl')
-.textContent=
-'$'+pnl.toFixed(2);
-
-
-document.getElementById('total')
-.textContent=total;
-
-
-document.getElementById('rwins')
-.textContent=wins;
-
-
-document.getElementById('rlosses')
-.textContent=losses;
-
-
-document.getElementById('rpnl')
-.textContent=
-'$'+pnl.toFixed(2);
-
-
-document.getElementById('dpnl')
-.textContent=
-'$'+pnl.toFixed(2);
-
-
-document.getElementById('dwinrate')
-.textContent=
-wr+'%';
-
-}
-
-
-function runBacktest(){
-
-if(!tickSamples.length){
-
-add(
-'No live tick samples yet. Connect the feed first.'
-);
-
-connectMarket();
-
-return;
-
-}
-
-
-stopBot();
-
-balance=100;
-wins=0;
-losses=0;
-pnl=0;
-total=0;
-step=0;
-
-
-clearLog();
-
-
-add(
-'Backtest started using '+
-tickSamples.length+
-' captured live-tick samples.'
-);
-
-
-const samples=
-tickSamples.slice(-100);
-
-
-for(
-const d of samples
-){
-
-const base=
-parseFloat(
-document.getElementById('stake').value
-)||1;
-
-
-const mg=
-parseFloat(
-document.getElementById('mg').value
-)||2;
-
-
-const max=
-parseInt(
-document.getElementById('steps').value
-)||4;
-
-
-const c=
-document.getElementById('contract').value;
-
-
-const st=
-base*Math.pow(mg,step);
-
-
-total++;
-
-
-if(
-ruleWin(d,c)
-){
-
-const p=
-st*payout;
-
-balance+=p;
-
-pnl+=p;
-
-wins++;
-
-step=0;
-
-}else{
-
-balance-=st;
-
-pnl-=st;
-
-losses++;
-
-step=
-step+1>=max
-?0
-:step+1;
-
-}
-
-}
-
-
-add(
-'Backtest complete: '+
-samples.length+
-' samples.'
-);
-
-
-update();
-
-}
-
-
-function loadPreset(c){
-
-document.getElementById('contract')
-.value=c;
-
-
-show(
-'builder',
-document.querySelectorAll('.side button')[1]
-);
-
-
-add(
-'Loaded preset: '+c
-);
-
-}
-
-
-function newSignal(){
-
-const c=
-document.getElementById('contract')
-.value;
-
-
-const d=
-lastTick===null
-?'—'
-:lastTick;
-
-
-document.getElementById('signal')
-.textContent=
-'Current rule: '+
-c+
-' • latest digit: '+
-d+
-' • demo only.';
-
-
-show(
-'signals',
-document.querySelectorAll('.side button')[3]
-);
-
-}
-
-
-document
-.getElementById('market')
-.addEventListener(
-'change',
-connectMarket
-);
-
-
-update();
-
-connectMarket();
+handleOAuthReturn();
 
 </script>
 
