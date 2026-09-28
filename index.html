@@ -62,6 +62,8 @@ button.secondary{background:#e7ebf2;color:#172033}button.danger{background:#b423
   <label>Martingale<input id="martingale" type="number" min="1" step="0.1" value="2"></label>
 </div>
 <p class="muted small">Strategy cycle: Over 1 → if loss, Over 2 at martingale stake → if loss, reset to Over 1.</p>
+<div id="balanceSync" class="notice" style="margin-top:12px">Live Deriv balance</div>
+
 <div class="botstats">
   <div class="botstat"><div class="label">Trades</div><div id="statTrades" class="value">0</div></div>
   <div class="botstat"><div class="label">Wins</div><div id="statWins" class="value">0</div></div>
@@ -127,6 +129,7 @@ const $ = id => document.getElementById(id);
 function log(msg, cls=""){const d=document.createElement("div");d.textContent=new Date().toLocaleTimeString()+"  "+msg;if(cls)d.className=cls;$("activity").appendChild(d);$("activity").scrollTop=$("activity").scrollHeight}
 function authHeaders(){return {"Authorization":"Bearer "+sessionId,"Content-Type":"application/json"}}
 function updateBotStats(){
+  if(!$("statTrades")) return;
   $("statTrades").textContent=trades;
   $("statWins").textContent=wins;
   $("statLosses").textContent=losses;
@@ -379,7 +382,7 @@ function startBot(){
   if(!ws||ws.readyState!==WebSocket.OPEN){alert("Connect Trading first.");return}
   if(!selectedAccount){alert("Select an account.");return}
   if(!selectedAccount.is_demo&&!$("realConfirm").checked){alert("REAL confirmation is required.");return}
-  currentStake=Number($("stake").value)||1;currentStep=1;trades=0;wins=0;losses=0;totalProfit=0;sessionStartBalance=liveBalance!=null?liveBalance:Number(selectedAccount?.balance);$("balanceSync").textContent=`Starting balance: ${Number(sessionStartBalance).toFixed(2)} ${selectedAccount.currency}`;updateBotStats();botRunning=true;waitingForContract=false;requestLiveBalance();
+  currentStake=Number($("stake").value)||1;currentStep=1;trades=0;wins=0;losses=0;totalProfit=0;sessionStartBalance=liveBalance!=null?liveBalance:Number(selectedAccount?.balance);if($("balanceSync")) $("balanceSync").textContent=`Starting balance: ${Number(sessionStartBalance).toFixed(2)} ${selectedAccount.currency}`;updateBotStats();botRunning=true;waitingForContract=false;requestLiveBalance();
   $("startBtn").disabled=true;$("stopBtn").disabled=false;
   log("BOT STARTED • "+(selectedAccount.is_demo?"DEMO":"REAL")+" • "+marketName(selectedMarket())+" • Over 1 • 1 tick");
   placeTrade();
@@ -416,8 +419,8 @@ function updateLiveBalance(b,currency){
     if(opt)opt.textContent=`${selectedAccount.is_demo?"DEMO":"REAL"} • ${selectedAccount.id} • ${n.toFixed(2)} ${cur}`;
   }
   const start=sessionStartBalance!=null?Number(sessionStartBalance):null;
-  if(start!=null&&Number.isFinite(start)) $("balanceSync").textContent=`Since session start: ${(n-start).toFixed(2)} ${cur}`;
-  else $("balanceSync").textContent="Live Deriv balance";
+  if($("balanceSync")){if(start!=null&&Number.isFinite(start)) $("balanceSync").textContent=`Since session start: ${(n-start).toFixed(2)} ${cur}`;
+  else $("balanceSync").textContent="Live Deriv balance";}
   updateBotStats();
 }
 function requestLiveBalance(){
