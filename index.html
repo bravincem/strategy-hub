@@ -271,10 +271,14 @@ function updateModeNotice(){
 }
 let tradingPingTimer=null;
 let tradingHandshakeTimer=null;
+let tradingReconnectTimer=null;
+let tradingReconnectAttempts=0;
+let manualTradingDisconnect=false;
 
 function clearTradingTimers(){
   if(tradingPingTimer){clearInterval(tradingPingTimer);tradingPingTimer=null;}
   if(tradingHandshakeTimer){clearTimeout(tradingHandshakeTimer);tradingHandshakeTimer=null;}
+  if(tradingReconnectTimer){clearTimeout(tradingReconnectTimer);tradingReconnectTimer=null;}
 }
 
 function extractWsUrl(d){
@@ -285,6 +289,8 @@ function extractWsUrl(d){
 
 async function connectTrading(){
   if(!selectedAccount||!sessionId)return;
+  manualTradingDisconnect=false;
+  if(tradingReconnectTimer){clearTimeout(tradingReconnectTimer);tradingReconnectTimer=null;}
   if(!selectedAccount.is_demo && !$("realConfirm").checked){alert("Tick the REAL TRADING confirmation first.");return}
   try{
     $("tradingConnectBtn").disabled=true;
@@ -319,6 +325,10 @@ async function connectTrading(){
       log((selectedAccount.is_demo?"DEMO":"REAL")+" trading WebSocket authenticated and open.");
       $("startBtn").disabled=false;
 
+      tradingReconnectAttempts=0;
+      // Keep the authenticated socket active from the moment it opens.
+      try{send({ping:1,req_id:++requestId})}catch{}
+
       // Give the server a moment after the authenticated handshake, then use
       // the documented balance subscription. This also makes failures easier to diagnose.
       tradingHandshakeTimer=setTimeout(()=>{
@@ -333,7 +343,7 @@ async function connectTrading(){
       // Keep the authenticated socket alive.
       tradingPingTimer=setInterval(()=>{
         if(ws&&ws.readyState===WebSocket.OPEN){try{send({ping:1,req_id:++requestId})}catch{}}
-      },30000);
+      },8000);
     };
 
     ws.onmessage=e=>{
@@ -355,7 +365,7 @@ async function connectTrading(){
     };
 
     ws.onerror=()=>{
-      log("Trading WebSocket connection interrupted; waiting for connection status...","loss");
+      log("Trading WebSocket reported a network interruption; checking connection status...","muted");
     };
     ws.onclose=e=>{
       clearTradingTimers();
@@ -370,6 +380,15 @@ async function connectTrading(){
       $("startBtn").disabled=true;
       $("stopBtn").disabled=true;
       $("tradingConnectBtn").disabled=false;
+
+      // Recover automatically from abnormal browser/network closes. A fresh
+      // authenticated OTP is requested for every reconnect attempt.
+      if(!manualTradingDisconnect && sessionId && selectedAccount && tradingReconnectAttempts<3){
+        tradingReconnectAttempts++;
+        const attempt=tradingReconnectAttempts;
+        log("Reconnecting trading channel automatically (attempt "+attempt+"/3)...","muted");
+        tradingReconnectTimer=setTimeout(()=>connectTrading(),1500);
+      }
     };
   }catch(e){
     clearTradingTimers();
@@ -484,6 +503,7 @@ function settle(profit,c){
 window.startBot=startBot;
 window.stopBot=stopBot;
 async function disconnectDeriv(){
+  manualTradingDisconnect=true;
   stopBot();
   if(ws)ws.close();
   ws=null;
