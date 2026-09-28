@@ -318,7 +318,14 @@ function startBot(){
   log("BOT STARTED • "+(selectedAccount.is_demo?"DEMO":"REAL")+" • Over 1 • 1 tick");
   placeTrade();
 }
-function stopBot(){botRunning=false;waitingForContract=false;$("startBtn").disabled=false;$("stopBtn").disabled=true;log("BOT STOPPED. No new trade will be opened.");}
+function stopBot(){
+  botRunning=false;
+  waitingForContract=false;
+  pending.clear();
+  $("startBtn").disabled=false;
+  $("stopBtn").disabled=true;
+  log("BOT STOPPED. No new trade will be opened.");
+}
 function placeTrade(){
   if(!botRunning||waitingForContract)return;
   const barrier= currentStep===1 ? 1 : 2;
@@ -330,7 +337,10 @@ function placeTrade(){
   log(`Proposal: Over ${barrier} • stake ${stake.toFixed(2)} ${selectedAccount.currency}`);
 }
 function handleTradingMessage(d){
-  if(d.error){log("Deriv error: "+(d.error.message||"Unknown error"));waitingForContract=false;return}
+  if(d.error){
+    log("Deriv trading error: "+(d.error.message||"Unknown error"),"loss");
+    return;
+  }
   if(d.msg_type==="balance"&&d.balance){const b=Number(d.balance.balance);if(Number.isFinite(b))$("balance").textContent=`${b.toFixed(2)} ${d.balance.currency||selectedAccount?.currency||"USD"}`;return}
   if(d.msg_type==="proposal"){
     const p=d.proposal||{};const meta=p.req_id?pending.get(p.req_id):pending.get(d.req_id);
@@ -347,6 +357,7 @@ function handleTradingMessage(d){
     const b=d.buy||{};const contractId=Number(b.contract_id);
     if(!contractId){log("Buy response did not contain a contract ID.");waitingForContract=false;return}
     log(`Contract bought #${contractId}`);
+    if(!botRunning) log("Bot is stopped; monitoring this already-open contract only.");
     send({proposal_open_contract:1,contract_id:contractId,subscribe:1,req_id:++requestId});
     return;
   }
@@ -365,7 +376,8 @@ function settle(profit,c){
   if(win){wins++;currentStep=1;currentStake=Number($("stake").value)||1;log(`WIN • profit ${profit.toFixed(2)} • reset to Over 1`,"success")}
   else{losses++;if(currentStep===1){currentStep=2;currentStake=(Number($("stake").value)||1)*(Number($("martingale").value)||2);log(`LOSS • ${Number(profit).toFixed(2)} • next Over 2 • stake ${currentStake.toFixed(2)}`,"loss")}else{currentStep=1;currentStake=Number($("stake").value)||1;log(`LOSS • ${Number(profit).toFixed(2)} • reset to Over 1`,"loss")}}
   log(`Stats: ${trades} trades | ${wins} wins | ${losses} losses`);
-  if(ws&&ws.readyState===WebSocket.OPEN)send({balance:1,subscribe:1});
+  // Balance is subscribed once when the trading channel opens.
+  // Do not subscribe again after every contract: Deriv rejects duplicate balance subscriptions.
   if(botRunning&&ws&&ws.readyState===WebSocket.OPEN)setTimeout(placeTrade,250);
 }
 async function disconnectDeriv(){
