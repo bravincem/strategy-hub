@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Deriv Strategy Hub</title>
+<title>Deriv Strategy Hub V6</title>
 <style>
 :root{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172033;background:#f5f7fb}
 *{box-sizing:border-box}body{margin:0}.wrap{max-width:1050px;margin:auto;padding:18px}
@@ -68,6 +68,8 @@ button.secondary{background:#e7ebf2;color:#172033}button.danger{background:#b423
   <div class="botstat"><div class="label">Losses</div><div id="statLosses" class="value">0</div></div>
   <div class="botstat"><div class="label">Win Rate</div><div id="statWinRate" class="value">0.0%</div></div>
   <div class="botstat"><div class="label">Total Profit</div><div id="statProfit" class="value">0.00 USD</div></div>
+  <div class="botstat"><div class="label">Account Balance</div><div id="statBalance" class="value">—</div></div>
+  <div class="botstat"><div class="label">Balance Change</div><div id="statBalanceChange" class="value">0.00 USD</div></div>
   <div class="botstat"><div class="label">Current Step / Stake</div><div id="statStepStake" class="value">Over 1 • 1.00</div></div>
 </div>
 
@@ -117,6 +119,8 @@ let pending = new Map();
 let currentStep = 1;
 let currentStake = 1;
 let trades = 0, wins = 0, losses = 0, totalProfit = 0;
+let sessionStartBalance = null;
+let liveBalance = null;
 
 const $ = id => document.getElementById(id);
 function log(msg, cls=""){const d=document.createElement("div");d.textContent=new Date().toLocaleTimeString()+"  "+msg;if(cls)d.className=cls;$("activity").appendChild(d);$("activity").scrollTop=$("activity").scrollHeight}
@@ -127,6 +131,9 @@ function updateBotStats(){
   $("statLosses").textContent=losses;
   $("statWinRate").textContent=(trades?((wins/trades)*100):0).toFixed(1)+"%";
   $("statProfit").textContent=totalProfit.toFixed(2)+" USD";
+  $("statBalance").textContent=liveBalance==null?"—":liveBalance.toFixed(2)+" USD";
+  const delta=sessionStartBalance==null||liveBalance==null?0:liveBalance-sessionStartBalance;
+  $("statBalanceChange").textContent=(delta>=0?"+":"")+delta.toFixed(2)+" USD";
   $("statStepStake").textContent=`Over ${currentStep} • ${currentStake.toFixed(2)}`;
 }
 
@@ -223,6 +230,8 @@ function accountChanged(){
   selectedAccount=accounts.find(a=>a.id===id)||null;
   if(!selectedAccount){$("accountStatus").textContent="Not connected";$("balance").textContent="—";$("tradingConnectBtn").disabled=true;return}
   $("accountStatus").textContent=(selectedAccount.is_demo?"DEMO ":"REAL ")+selectedAccount.id;
+  liveBalance=Number(selectedAccount.balance);
+  sessionStartBalance=null;
   $("balance").textContent=`${selectedAccount.balance.toFixed(2)} ${selectedAccount.currency}`;
   $("tradingConnectBtn").disabled=false;
   updateModeNotice();
@@ -293,6 +302,7 @@ async function connectTrading(){
         try{
           send({balance:1,subscribe:1,req_id:++requestId});
           log("Trading channel ready • balance subscription sent.");
+          requestLiveBalance();
         }catch(e){log("Trading setup error: "+e.message,"loss");}
       },250);
 
@@ -348,7 +358,7 @@ function startBot(){
   if(!ws||ws.readyState!==WebSocket.OPEN){alert("Connect Trading first.");return}
   if(!selectedAccount){alert("Select an account.");return}
   if(!selectedAccount.is_demo&&!$("realConfirm").checked){alert("REAL confirmation is required.");return}
-  currentStake=Number($("stake").value)||1;currentStep=1;trades=0;wins=0;losses=0;totalProfit=0;updateBotStats();botRunning=true;waitingForContract=false;
+  currentStake=Number($("stake").value)||1;currentStep=1;trades=0;wins=0;losses=0;totalProfit=0;sessionStartBalance=liveBalance!=null?liveBalance:Number(selectedAccount?.balance);updateBotStats();botRunning=true;waitingForContract=false;requestLiveBalance();
   $("startBtn").disabled=true;$("stopBtn").disabled=false;
   log("BOT STARTED • "+(selectedAccount.is_demo?"DEMO":"REAL")+" • Over 1 • 1 tick");
   placeTrade();
@@ -371,12 +381,33 @@ function placeTrade(){
   send({proposal:1,amount:stake,basis:"stake",contract_type:"DIGITOVER",currency:selectedAccount.currency, duration:1,duration_unit:"t",barrier:String(barrier),underlying_symbol:"1HZ100V",req_id:req});
   log(`Proposal: Over ${barrier} • stake ${stake.toFixed(2)} ${selectedAccount.currency}`);
 }
+function updateLiveBalance(b,currency){
+  const n=Number(b);
+  if(!Number.isFinite(n))return;
+  liveBalance=n;
+  const cur=currency||selectedAccount?.currency||"USD";
+  $("balance").textContent=`${n.toFixed(2)} ${cur}`;
+  $("statBalance").textContent=`${n.toFixed(2)} ${cur}`;
+  if(selectedAccount){
+    selectedAccount.balance=n;
+    const sel=$("accountSelect");
+    const opt=Array.from(sel.options).find(o=>o.value===selectedAccount.id);
+    if(opt)opt.textContent=`${selectedAccount.is_demo?"DEMO":"REAL"} • ${selectedAccount.id} • ${n.toFixed(2)} ${cur}`;
+  }
+  updateBotStats();
+}
+function requestLiveBalance(){
+  if(ws&&ws.readyState===WebSocket.OPEN){
+    try{send({balance:1,req_id:++requestId})}catch{}
+  }
+}
+
 function handleTradingMessage(d){
   if(d.error){
     log("Deriv trading error: "+(d.error.message||"Unknown error"),"loss");
     return;
   }
-  if(d.msg_type==="balance"&&d.balance){const b=Number(d.balance.balance);if(Number.isFinite(b))$("balance").textContent=`${b.toFixed(2)} ${d.balance.currency||selectedAccount?.currency||"USD"}`;return}
+  if(d.msg_type==="balance"&&d.balance){updateLiveBalance(d.balance.balance,d.balance.currency);return}
   if(d.msg_type==="proposal"){
     const p=d.proposal||{};const meta=p.req_id?pending.get(p.req_id):pending.get(d.req_id);
     const req=d.req_id;const m=pending.get(req)||meta;
@@ -417,8 +448,9 @@ function settle(profit,c){
   else{losses++;if(currentStep===1){currentStep=2;currentStake=(Number($("stake").value)||1)*(Number($("martingale").value)||2);log(`LOSS • ${Number(profit).toFixed(2)} • next Over 2 • stake ${currentStake.toFixed(2)}`,"loss")}else{currentStep=1;currentStake=Number($("stake").value)||1;log(`LOSS • ${Number(profit).toFixed(2)} • reset to Over 1`,"loss")}}
   updateBotStats();
   log(`Stats: ${trades} trades | ${wins} wins | ${losses} losses | ${((wins/trades)*100).toFixed(1)}% | profit ${totalProfit.toFixed(2)}`);
-  // Balance is subscribed once when the trading channel opens.
-  // Do not subscribe again after every contract: Deriv rejects duplicate balance subscriptions.
+  // Refresh the current account balance with a one-shot request.
+  // This is deliberately NOT a subscription, so it cannot create duplicate balance subscriptions.
+  requestLiveBalance();
   if(botRunning&&ws&&ws.readyState===WebSocket.OPEN)setTimeout(placeTrade,250);
 }
 async function disconnectDeriv(){
