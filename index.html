@@ -90,7 +90,7 @@ button.secondary{background:#e7ebf2;color:#172033}button.danger{background:#b423
   </label>
   <button class="secondary" onclick="retryAccounts()">Reload Account</button>
   <button id="tradingConnectBtn" onclick="connectTrading()" disabled>Connect Trading</button>
-  <button id="startBtn" onclick="startBot()" disabled>Start Bot</button>
+  <button id="startBtn" type="button" disabled>Start Bot</button>
   <button id="stopBtn" class="danger" onclick="stopBot()" disabled>Stop Bot</button>
 </div>
 <div id="modeNotice" class="notice" style="margin-top:12px">Demo mode selected. No real-money orders can be placed until a real account is selected and confirmed.</div>
@@ -379,7 +379,8 @@ async function connectTrading(){
 }
 function send(obj){if(!ws||ws.readyState!==WebSocket.OPEN)throw new Error("Trading WebSocket is not connected");ws.send(JSON.stringify(obj))}
 function startBot(){
-  if(!ws||ws.readyState!==WebSocket.OPEN){alert("Connect Trading first.");return}
+  log("START BOT clicked • checking DEMO trading channel...","muted");
+  if(!ws||ws.readyState!==WebSocket.OPEN){log("Start blocked: trading WebSocket is not open.","loss");alert("Connect Trading first.");return}
   if(!selectedAccount){alert("Select an account.");return}
   if(!selectedAccount.is_demo&&!$("realConfirm").checked){alert("REAL confirmation is required.");return}
   currentStake=Number($("stake").value)||1;currentStep=1;trades=0;wins=0;losses=0;totalProfit=0;sessionStartBalance=liveBalance!=null?liveBalance:Number(selectedAccount?.balance);if($("balanceSync")) $("balanceSync").textContent=`Starting balance: ${Number(sessionStartBalance).toFixed(2)} ${selectedAccount.currency}`;updateBotStats();botRunning=true;waitingForContract=false;requestLiveBalance();
@@ -495,6 +496,9 @@ function disconnectLocal(){
 }
 $("market").addEventListener("change",syncMarketUI);
 $("realConfirm").addEventListener("change",updateModeNotice);
+// V10: make Start/Stop controls explicit buttons and keep their handlers resilient.
+$("startBtn").addEventListener("click",()=>{ if($('startBtn').disabled)return; startBot(); });
+$("stopBtn").addEventListener("click",()=>{ if($('stopBtn').disabled)return; stopBot(); });
 handleOAuthReturn();
 </script>
 </body>
