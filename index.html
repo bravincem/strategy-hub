@@ -274,11 +274,13 @@ let tradingHandshakeTimer=null;
 let tradingReconnectTimer=null;
 let tradingReconnectAttempts=0;
 let manualTradingDisconnect=false;
+let proposalWatchTimer=null;
 
 function clearTradingTimers(){
   if(tradingPingTimer){clearInterval(tradingPingTimer);tradingPingTimer=null;}
   if(tradingHandshakeTimer){clearTimeout(tradingHandshakeTimer);tradingHandshakeTimer=null;}
   if(tradingReconnectTimer){clearTimeout(tradingReconnectTimer);tradingReconnectTimer=null;}
+  if(proposalWatchTimer){clearTimeout(proposalWatchTimer);proposalWatchTimer=null;}
 }
 
 function extractWsUrl(d){
@@ -290,6 +292,7 @@ function extractWsUrl(d){
 async function connectTrading(){
   if(!selectedAccount||!sessionId)return;
   manualTradingDisconnect=false;
+  tradingReconnectAttempts=0;
   if(tradingReconnectTimer){clearTimeout(tradingReconnectTimer);tradingReconnectTimer=null;}
   if(!selectedAccount.is_demo && !$("realConfirm").checked){alert("Tick the REAL TRADING confirmation first.");return}
   try{
@@ -325,10 +328,6 @@ async function connectTrading(){
       log((selectedAccount.is_demo?"DEMO":"REAL")+" trading WebSocket authenticated and open.");
       $("startBtn").disabled=false;
 
-      tradingReconnectAttempts=0;
-      // Keep the authenticated socket active from the moment it opens.
-      try{send({ping:1,req_id:++requestId})}catch{}
-
       // Give the server a moment after the authenticated handshake, then use
       // the documented balance subscription. This also makes failures easier to diagnose.
       tradingHandshakeTimer=setTimeout(()=>{
@@ -341,6 +340,8 @@ async function connectTrading(){
       },250);
 
       // Keep the authenticated socket alive.
+      // Frequent heartbeat keeps the authenticated channel alive.
+      try{send({ping:1,req_id:++requestId})}catch{}
       tradingPingTimer=setInterval(()=>{
         if(ws&&ws.readyState===WebSocket.OPEN){try{send({ping:1,req_id:++requestId})}catch{}}
       },8000);
@@ -372,7 +373,6 @@ async function connectTrading(){
       const reason=e&&e.reason?" • "+e.reason:"";
       const code=e&&e.code?" • code "+e.code:"";
       const wasRunning=botRunning;
-      // Never continue placing trades on a socket that has closed.
       botRunning=false;
       waitingForContract=false;
       pending.clear();
@@ -381,13 +381,13 @@ async function connectTrading(){
       $("stopBtn").disabled=true;
       $("tradingConnectBtn").disabled=false;
 
-      // Recover automatically from abnormal browser/network closes. A fresh
-      // authenticated OTP is requested for every reconnect attempt.
       if(!manualTradingDisconnect && sessionId && selectedAccount && tradingReconnectAttempts<3){
-        tradingReconnectAttempts++;
-        const attempt=tradingReconnectAttempts;
-        log("Reconnecting trading channel automatically (attempt "+attempt+"/3)...","muted");
-        tradingReconnectTimer=setTimeout(()=>connectTrading(),1500);
+        const attempt=++tradingReconnectAttempts;
+        log(`Reconnecting trading channel automatically (attempt ${attempt}/3)...`,"muted");
+        tradingReconnectTimer=setTimeout(()=>{
+          tradingReconnectTimer=null;
+          connectTrading();
+        },1500);
       }
     };
   }catch(e){
@@ -399,31 +399,69 @@ async function connectTrading(){
 function send(obj){if(!ws||ws.readyState!==WebSocket.OPEN)throw new Error("Trading WebSocket is not connected");ws.send(JSON.stringify(obj))}
 function startBot(){
   log("START BOT clicked • checking DEMO trading channel...","muted");
-  if(!ws||ws.readyState!==WebSocket.OPEN){log("Start blocked: trading WebSocket is not open.","loss");alert("Connect Trading first.");return}
-  if(!selectedAccount){alert("Select an account.");return}
-  if(!selectedAccount.is_demo&&!$("realConfirm").checked){alert("REAL confirmation is required.");return}
-  currentStake=Number($("stake").value)||1;currentStep=1;trades=0;wins=0;losses=0;totalProfit=0;sessionStartBalance=liveBalance!=null?liveBalance:Number(selectedAccount?.balance);if($("balanceSync")) $("balanceSync").textContent=`Starting balance: ${Number(sessionStartBalance).toFixed(2)} ${selectedAccount.currency}`;updateBotStats();botRunning=true;waitingForContract=false;requestLiveBalance();
+  if(!selectedAccount){log("Start blocked: no trading account selected.","loss");return}
+  if(!ws||ws.readyState!==WebSocket.OPEN){log("Start blocked: trading WebSocket is not open.","loss");return}
+  if(!selectedAccount.is_demo&&!$("realConfirm").checked){log("Start blocked: REAL confirmation is required.","loss");return}
+  currentStake=Number($("stake").value)||1;
+  currentStep=1;trades=0;wins=0;losses=0;totalProfit=0;
+  sessionStartBalance=liveBalance!=null?liveBalance:Number(selectedAccount.balance);
+  if($("balanceSync")) $("balanceSync").textContent=`Starting balance: ${Number(sessionStartBalance).toFixed(2)} ${selectedAccount.currency}`;
+  updateBotStats();
+  botRunning=true;
+  waitingForContract=false;
+  pending.clear();
+  requestLiveBalance();
   $("startBtn").disabled=true;$("stopBtn").disabled=false;
   log("BOT STARTED • "+(selectedAccount.is_demo?"DEMO":"REAL")+" • "+marketName(selectedMarket())+" • Over 1 • 1 tick");
-  placeTrade();
+  setTimeout(()=>{
+    if(!botRunning)return;
+    if(!ws||ws.readyState!==WebSocket.OPEN){log("First trade delayed: trading channel is not open.","loss");return}
+    placeTrade();
+  },150);
 }
 function stopBot(){
   botRunning=false;
   waitingForContract=false;
   pending.clear();
+  if(proposalWatchTimer){clearTimeout(proposalWatchTimer);proposalWatchTimer=null;}
   $("startBtn").disabled=false;
   $("stopBtn").disabled=true;
   log("BOT STOPPED. No new trade will be opened.");
 }
 function placeTrade(){
-  if(!botRunning||waitingForContract)return;
-  const barrier= currentStep===1 ? 1 : 2;
-  const stake=currentStake;
-  waitingForContract=true;
+  if(!botRunning){log("Trade skipped: bot is stopped.","muted");return}
+  if(waitingForContract){log("Trade skipped: waiting for the previous contract.","muted");return}
+  if(!selectedAccount){log("Trade blocked: no selected account.","loss");return}
+  if(!ws||ws.readyState!==WebSocket.OPEN){log("Trade blocked: trading WebSocket is not open.","loss");return}
+
+  const barrier=currentStep===1?1:2;
+  const stake=Number(currentStake)||1;
+  const symbol=selectedMarket();
   const req=++requestId;
+  const payload={proposal:1,amount:stake,basis:"stake",contract_type:"DIGITOVER",currency:selectedAccount.currency,duration:1,duration_unit:"t",barrier:String(barrier),underlying_symbol:symbol,req_id:req};
+
+  waitingForContract=true;
   pending.set(req,{type:"proposal",stake,barrier});
-  send({proposal:1,amount:stake,basis:"stake",contract_type:"DIGITOVER",currency:selectedAccount.currency, duration:1,duration_unit:"t",barrier:String(barrier),underlying_symbol:selectedMarket(),req_id:req});
-  log(`Proposal: Over ${barrier} • stake ${stake.toFixed(2)} ${selectedAccount.currency}`);
+  log(`SENDING PROPOSAL • Over ${barrier} • stake ${stake.toFixed(2)} ${selectedAccount.currency} • ${symbol}`);
+  try{
+    send(payload);
+    log(`Proposal sent • waiting for Deriv response • req ${req}`,"muted");
+  }catch(e){
+    pending.delete(req);
+    waitingForContract=false;
+    log("Proposal send failed: "+e.message,"loss");
+    return;
+  }
+
+  if(proposalWatchTimer)clearTimeout(proposalWatchTimer);
+  proposalWatchTimer=setTimeout(()=>{
+    proposalWatchTimer=null;
+    if(!botRunning||!pending.has(req))return;
+    pending.delete(req);
+    waitingForContract=false;
+    log("No proposal response received after 5 seconds; retrying once...","loss");
+    setTimeout(()=>{if(botRunning&&ws&&ws.readyState===WebSocket.OPEN)placeTrade();},250);
+  },5000);
 }
 function updateLiveBalance(b,currency){
   const n=Number(b);
@@ -460,6 +498,7 @@ function handleTradingMessage(d){
     const req=d.req_id;const m=pending.get(req)||meta;
     if(!m)return;
     pending.delete(req);
+    if(proposalWatchTimer){clearTimeout(proposalWatchTimer);proposalWatchTimer=null;}
     const price=Number(p.ask_price);
     if(!p.id||!Number.isFinite(price)){log("Proposal returned without a valid buy price.");waitingForContract=false;return}
     const buyReq=++requestId;pending.set(buyReq,{type:"buy",stake:m.stake,barrier:m.barrier});
