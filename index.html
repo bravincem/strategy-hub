@@ -12,7 +12,7 @@ h1{font-size:22px;margin:0}.muted{color:#687386}.pill{padding:9px 13px;border-ra
 button{border:0;border-radius:10px;padding:12px 16px;font-weight:800;cursor:pointer;background:#172033;color:white}
 button.secondary{background:#e7ebf2;color:#172033}button.danger{background:#b42318}button:disabled{opacity:.45;cursor:not-allowed}
 .card{background:white;border:1px solid #e4e8ef;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 4px 18px #1822300b}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.stat{padding:15px;background:#f8fafc;border-radius:12px}.label{font-size:12px;color:#778197}.value{font-size:24px;font-weight:900;margin-top:5px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.stat{padding:15px;background:#f8fafc;border-radius:12px}.botstats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.botstat{padding:12px;background:#f8fafc;border:1px solid #e4e8ef;border-radius:12px}.botstat .label{font-size:11px;color:#778197}.botstat .value{font-size:20px;font-weight:900;margin-top:4px}@media(max-width:700px){.botstats{grid-template-columns:repeat(2,1fr)}}.label{font-size:12px;color:#778197}.value{font-size:24px;font-weight:900;margin-top:5px}
 .feed{background:#1726a5;color:white;border-radius:14px;padding:17px;display:flex;justify-content:space-between;align-items:center}.feed .value{color:white}
 .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}label{font-size:13px;font-weight:800;color:#4d586b}input,select{width:100%;margin-top:7px;padding:12px;border:1px solid #d9dee8;border-radius:9px;background:white;font-size:15px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.notice{padding:12px;border-radius:10px;background:#fff6df;color:#765000;font-size:13px}
@@ -62,6 +62,14 @@ button.secondary{background:#e7ebf2;color:#172033}button.danger{background:#b423
   <label>Martingale<input id="martingale" type="number" min="1" step="0.1" value="2"></label>
 </div>
 <p class="muted small">Strategy cycle: Over 1 → if loss, Over 2 at martingale stake → if loss, reset to Over 1.</p>
+<div class="botstats">
+  <div class="botstat"><div class="label">Trades</div><div id="statTrades" class="value">0</div></div>
+  <div class="botstat"><div class="label">Wins</div><div id="statWins" class="value">0</div></div>
+  <div class="botstat"><div class="label">Losses</div><div id="statLosses" class="value">0</div></div>
+  <div class="botstat"><div class="label">Win Rate</div><div id="statWinRate" class="value">0.0%</div></div>
+  <div class="botstat"><div class="label">Total Profit</div><div id="statProfit" class="value">0.00 USD</div></div>
+  <div class="botstat"><div class="label">Current Step / Stake</div><div id="statStepStake" class="value">Over 1 • 1.00</div></div>
+</div>
 
 <div class="realbox">
   <div><strong>REAL TRADING</strong></div>
@@ -108,11 +116,19 @@ let requestId = 100;
 let pending = new Map();
 let currentStep = 1;
 let currentStake = 1;
-let trades = 0, wins = 0, losses = 0;
+let trades = 0, wins = 0, losses = 0, totalProfit = 0;
 
 const $ = id => document.getElementById(id);
 function log(msg, cls=""){const d=document.createElement("div");d.textContent=new Date().toLocaleTimeString()+"  "+msg;if(cls)d.className=cls;$("activity").appendChild(d);$("activity").scrollTop=$("activity").scrollHeight}
 function authHeaders(){return {"Authorization":"Bearer "+sessionId,"Content-Type":"application/json"}}
+function updateBotStats(){
+  $("statTrades").textContent=trades;
+  $("statWins").textContent=wins;
+  $("statLosses").textContent=losses;
+  $("statWinRate").textContent=(trades?((wins/trades)*100):0).toFixed(1)+"%";
+  $("statProfit").textContent=totalProfit.toFixed(2)+" USD";
+  $("statStepStake").textContent=`Over ${currentStep} • ${currentStake.toFixed(2)}`;
+}
 
 function connectPublicFeed(){
   publicWs = new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
@@ -120,6 +136,7 @@ function connectPublicFeed(){
   publicWs.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.msg_type==="tick"){const q=String(d.tick.quote);$("quote").textContent=Number(d.tick.quote).toFixed(2);const digit=q.replace(/\D/g,"").slice(-1);$("lastDigit").textContent=digit}}catch{}};
   publicWs.onclose=()=>{$("feedStatus").textContent="RECONNECTING";setTimeout(connectPublicFeed,2000)};
 }
+updateBotStats();
 connectPublicFeed();
 
 async function connectDeriv(){
@@ -288,16 +305,34 @@ async function connectTrading(){
     ws.onmessage=e=>{
       try{
         const msg=JSON.parse(e.data);
-        if(msg.error){log("Deriv trading error: "+(msg.error.message||"Request rejected"),"loss");return;}
+        if(msg.error){
+          const message=msg.error.message||"Request rejected";
+          // A 1-tick contract can settle before the follow-up
+          // proposal_open_contract request reaches Deriv.
+          if(/unknown contract proposal/i.test(message)){
+            log("1-tick contract already settled; monitoring response arrived too late.","muted");
+            return;
+          }
+          log("Deriv trading error: "+message,"loss");
+          return;
+        }
         handleTradingMessage(msg);
       }catch(err){log("Trading message error: "+err.message,"loss");}
     };
 
-    ws.onerror=()=>log("Trading WebSocket error. Checking the authenticated connection...","loss");
+    ws.onerror=()=>{
+      log("Trading WebSocket connection interrupted; waiting for connection status...","loss");
+    };
     ws.onclose=e=>{
       clearTradingTimers();
       const reason=e&&e.reason?" • "+e.reason:"";
-      log("Trading connection closed"+(e&&e.code?" • code "+e.code:"")+reason,"loss");
+      const code=e&&e.code?" • code "+e.code:"";
+      const wasRunning=botRunning;
+      // Never continue placing trades on a socket that has closed.
+      botRunning=false;
+      waitingForContract=false;
+      pending.clear();
+      log("Trading connection closed"+code+reason+(wasRunning?" • bot paused safely":""),"loss");
       $("startBtn").disabled=true;
       $("stopBtn").disabled=true;
       $("tradingConnectBtn").disabled=false;
@@ -313,7 +348,7 @@ function startBot(){
   if(!ws||ws.readyState!==WebSocket.OPEN){alert("Connect Trading first.");return}
   if(!selectedAccount){alert("Select an account.");return}
   if(!selectedAccount.is_demo&&!$("realConfirm").checked){alert("REAL confirmation is required.");return}
-  currentStake=Number($("stake").value)||1;currentStep=1;botRunning=true;waitingForContract=false;
+  currentStake=Number($("stake").value)||1;currentStep=1;trades=0;wins=0;losses=0;totalProfit=0;updateBotStats();botRunning=true;waitingForContract=false;
   $("startBtn").disabled=true;$("stopBtn").disabled=false;
   log("BOT STARTED • "+(selectedAccount.is_demo?"DEMO":"REAL")+" • Over 1 • 1 tick");
   placeTrade();
@@ -358,7 +393,12 @@ function handleTradingMessage(d){
     if(!contractId){log("Buy response did not contain a contract ID.");waitingForContract=false;return}
     log(`Contract bought #${contractId}`);
     if(!botRunning) log("Bot is stopped; monitoring this already-open contract only.");
-    send({proposal_open_contract:1,contract_id:contractId,subscribe:1,req_id:++requestId});
+    // Give the 1-tick contract a moment to register before subscribing.
+    setTimeout(()=>{
+      if(!ws||ws.readyState!==WebSocket.OPEN)return;
+      try{send({proposal_open_contract:1,contract_id:contractId,subscribe:1,req_id:++requestId});}
+      catch(e){log("Contract monitoring request skipped: "+e.message,"muted");}
+    },80);
     return;
   }
   if(d.msg_type==="proposal_open_contract"){
@@ -371,11 +411,12 @@ function handleTradingMessage(d){
 function reqPrice(n){return Math.ceil(n*100)/100}
 function settle(profit,c){
   if(!waitingForContract)return;
-  waitingForContract=false;trades++;
+  waitingForContract=false;trades++;totalProfit+=profit;
   const win=profit>0;
   if(win){wins++;currentStep=1;currentStake=Number($("stake").value)||1;log(`WIN • profit ${profit.toFixed(2)} • reset to Over 1`,"success")}
   else{losses++;if(currentStep===1){currentStep=2;currentStake=(Number($("stake").value)||1)*(Number($("martingale").value)||2);log(`LOSS • ${Number(profit).toFixed(2)} • next Over 2 • stake ${currentStake.toFixed(2)}`,"loss")}else{currentStep=1;currentStake=Number($("stake").value)||1;log(`LOSS • ${Number(profit).toFixed(2)} • reset to Over 1`,"loss")}}
-  log(`Stats: ${trades} trades | ${wins} wins | ${losses} losses`);
+  updateBotStats();
+  log(`Stats: ${trades} trades | ${wins} wins | ${losses} losses | ${((wins/trades)*100).toFixed(1)}% | profit ${totalProfit.toFixed(2)}`);
   // Balance is subscribed once when the trading channel opens.
   // Do not subscribe again after every contract: Deriv rejects duplicate balance subscriptions.
   if(botRunning&&ws&&ws.readyState===WebSocket.OPEN)setTimeout(placeTrade,250);
