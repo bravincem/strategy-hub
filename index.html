@@ -76,6 +76,7 @@ button.secondary{background:#e7ebf2;color:#172033}button.danger{background:#b423
   <label style="min-width:240px">Trading account
     <select id="accountSelect" onchange="accountChanged()"><option value="">Connect an account first</option></select>
   </label>
+  <button class="secondary" onclick="retryAccounts()">Reload Account</button>
   <button id="tradingConnectBtn" onclick="connectTrading()" disabled>Connect Trading</button>
   <button id="startBtn" onclick="startBot()" disabled>Start Bot</button>
   <button id="stopBtn" class="danger" onclick="stopBot()" disabled>Stop Bot</button>
@@ -124,24 +125,81 @@ connectPublicFeed();
 async function connectDeriv(){
   window.location.href=API_BASE+"/auth/start";
 }
+function setConnectedUI(){
+  $("connectBtn").hidden=true;
+  $("disconnectBtn").hidden=false;
+  $("connectionPill").textContent="● Deriv Connected";
+  $("connectionPill").style.background="#e8f8f0";
+  $("connectionPill").style.color="#08784d";
+}
+function setDisconnectedUI(){
+  $("connectBtn").hidden=false;
+  $("disconnectBtn").hidden=true;
+  $("connectionPill").textContent="● Not connected";
+  $("connectionPill").style.background="#eef1f5";
+  $("connectionPill").style.color="#566070";
+}
 async function handleOAuthReturn(){
   const p=new URLSearchParams(location.search);
   const returned=p.get("session");
   if(returned){sessionId=returned;localStorage.setItem(SESSION_KEY,sessionId);history.replaceState({},document.title,"/strategy-hub/");}
-  if(sessionId){await loadAccounts();$("connectBtn").hidden=true;$("disconnectBtn").hidden=false;$("connectionPill").textContent="● Deriv Connected";$("connectionPill").style.background="#e8f8f0";$("connectionPill").style.color="#08784d";}
+  if(!sessionId){setDisconnectedUI();return;}
+  setConnectedUI();
+  await loadAccounts();
+}
+function normaliseAccount(a){
+  if(!a)return null;
+  const id=a.id || a.account_id || a.accountId || a.loginid;
+  const currency=a.currency || a.account_currency || "USD";
+  const rawBalance=typeof a.balance==="object" && a.balance!==null ? a.balance.balance : a.balance;
+  const balance=Number(rawBalance);
+  const isDemo=Boolean(a.is_demo ?? a.isDemo ?? a.demo ?? (typeof id==="string" && /^VRT|^DOT/i.test(id)));
+  if(!id)return null;
+  return {id,currency,balance:Number.isFinite(balance)?balance:0,is_demo:isDemo};
 }
 async function loadAccounts(){
   try{
-    const r=await fetch(API_BASE+"/api/accounts",{headers:authHeaders()});
-    const d=await r.json();
-    if(!r.ok||!d.ok) throw new Error(d.error||"Account request failed");
-    accounts=d.accounts||[];
-    const sel=$("accountSelect");sel.innerHTML="";
-    if(!accounts.length){sel.innerHTML="<option value=''>No Options accounts found</option>";return}
-    accounts.forEach((a,i)=>{const o=document.createElement("option");o.value=a.id;o.textContent=`${a.is_demo?"DEMO":"REAL"} • ${a.id} • ${a.balance.toFixed(2)} ${a.currency}`;sel.appendChild(o);});
-    const demo=accounts.find(a=>a.is_demo) || accounts[0];sel.value=demo.id;accountChanged();
-    log("Account list loaded.");
-  }catch(e){log("Account error: "+e.message);disconnectLocal()}
+    if(!sessionId)throw new Error("No Deriv session found");
+    const r=await fetch(API_BASE+"/api/accounts",{headers:authHeaders(),cache:"no-store"});
+    const text=await r.text();
+    let d;try{d=JSON.parse(text)}catch{throw new Error("Account API returned non-JSON (HTTP "+r.status+")");}
+    if(!r.ok||d.ok===false)throw new Error(d.error||d.message||("Account request failed (HTTP "+r.status+")"));
+    const raw=Array.isArray(d.accounts)?d.accounts:(Array.isArray(d.data?.accounts)?d.data.accounts:(Array.isArray(d.data)?d.data:[]));
+    accounts=raw.map(normaliseAccount).filter(Boolean);
+    const sel=$("accountSelect");
+    sel.innerHTML="";
+    if(!accounts.length){
+      sel.innerHTML="<option value=''>No Options accounts found</option>";
+      $("accountStatus").textContent="No account returned";
+      $("balance").textContent="—";
+      $("tradingConnectBtn").disabled=true;
+      log("Deriv connected, but the account API returned no accounts.");
+      return false;
+    }
+    accounts.forEach(a=>{
+      const o=document.createElement("option");
+      o.value=a.id;
+      o.textContent=`${a.is_demo?"DEMO":"REAL"} • ${a.id} • ${a.balance.toFixed(2)} ${a.currency}`;
+      sel.appendChild(o);
+    });
+    const demo=accounts.find(a=>a.is_demo)||accounts[0];
+    sel.value=demo.id;
+    accountChanged();
+    log("Account list loaded: "+accounts.length+" account(s).");
+    return true;
+  }catch(e){
+    log("Account error: "+e.message,"loss");
+    // Keep the OAuth session alive so the user remains connected while we retry.
+    $("accountStatus").textContent="Account loading failed";
+    $("balance").textContent="—";
+    $("tradingConnectBtn").disabled=true;
+    return false;
+  }
+}
+async function retryAccounts(){
+  if(!sessionId){alert("Connect Deriv first.");return;}
+  log("Retrying account list...");
+  await loadAccounts();
 }
 function accountChanged(){
   const id=$("accountSelect").value;
@@ -173,8 +231,8 @@ async function connectTrading(){
     ws=new WebSocket(d.ws_url);
     ws.onopen=()=>{log((selectedAccount.is_demo?"DEMO":"REAL")+" trading WebSocket connected.");$("startBtn").disabled=false;send({balance:1,subscribe:1});};
     ws.onmessage=e=>handleTradingMessage(JSON.parse(e.data));
-    ws.onerror=()=>log("Trading WebSocket error.");
-    ws.onclose=()=>{log("Trading connection closed.");$("startBtn").disabled=true;$("stopBtn").disabled=true;$("tradingConnectBtn").disabled=false};
+    ws.onerror=e=>log("Trading WebSocket error. The secure connection was not kept open.","loss");
+    ws.onclose=e=>{log("Trading connection closed"+(e&&e.code?" • code "+e.code:"")+((e&&e.reason)?" • "+e.reason:""));$("startBtn").disabled=true;$("stopBtn").disabled=true;$("tradingConnectBtn").disabled=false};
   }catch(e){log("Trading connection error: "+e.message);$("tradingConnectBtn").disabled=false}
 }
 function send(obj){if(!ws||ws.readyState!==WebSocket.OPEN)throw new Error("Trading WebSocket is not connected");ws.send(JSON.stringify(obj))}
@@ -234,8 +292,8 @@ function settle(profit,c){
   if(win){wins++;currentStep=1;currentStake=Number($("stake").value)||1;log(`WIN • profit ${profit.toFixed(2)} • reset to Over 1`,"success")}
   else{losses++;if(currentStep===1){currentStep=2;currentStake=(Number($("stake").value)||1)*(Number($("martingale").value)||2);log(`LOSS • ${Number(profit).toFixed(2)} • next Over 2 • stake ${currentStake.toFixed(2)}`,"loss")}else{currentStep=1;currentStake=Number($("stake").value)||1;log(`LOSS • ${Number(profit).toFixed(2)} • reset to Over 1`,"loss")}}
   log(`Stats: ${trades} trades | ${wins} wins | ${losses} losses`);
-  send({balance:1,subscribe:1});
-  if(botRunning)setTimeout(placeTrade,250);
+  if(ws&&ws.readyState===WebSocket.OPEN)send({balance:1,subscribe:1});
+  if(botRunning&&ws&&ws.readyState===WebSocket.OPEN)setTimeout(placeTrade,250);
 }
 async function disconnectDeriv(){
   stopBot();
@@ -246,8 +304,8 @@ async function disconnectDeriv(){
 }
 function disconnectLocal(){
   sessionId=null;localStorage.removeItem(SESSION_KEY);accounts=[];selectedAccount=null;
-  $("connectionPill").textContent="● Not connected";$("connectionPill").style.background="#eef1f5";$("connectionPill").style.color="#566070";
-  $("connectBtn").hidden=false;$("disconnectBtn").hidden=true;$("accountStatus").textContent="Not connected";$("balance").textContent="—";
+  setDisconnectedUI();
+  $("accountStatus").textContent="Not connected";$("balance").textContent="—";
   $("accountSelect").innerHTML="<option>Connect an account first</option>";$("tradingConnectBtn").disabled=true;$("startBtn").disabled=true;
 }
 $("realConfirm").addEventListener("change",updateModeNotice);
