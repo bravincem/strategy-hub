@@ -90,7 +90,7 @@ button.secondary{background:#e7ebf2;color:#172033}button.danger{background:#b423
   </label>
   <button class="secondary" onclick="retryAccounts()">Reload Account</button>
   <button id="tradingConnectBtn" onclick="connectTrading()" disabled>Connect Trading</button>
-  <button id="startBtn" type="button" disabled>Start Bot</button>
+  <button id="startBtn" type="button" disabled onclick="window.startBot()">Start Bot</button>
   <button id="stopBtn" class="danger" onclick="stopBot()" disabled>Stop Bot</button>
 </div>
 <div id="modeNotice" class="notice" style="margin-top:12px">Demo mode selected. No real-money orders can be placed until a real account is selected and confirmed.</div>
@@ -481,6 +481,8 @@ function settle(profit,c){
   requestLiveBalance();
   if(botRunning&&ws&&ws.readyState===WebSocket.OPEN)setTimeout(placeTrade,250);
 }
+window.startBot=startBot;
+window.stopBot=stopBot;
 async function disconnectDeriv(){
   stopBot();
   if(ws)ws.close();
@@ -497,8 +499,7 @@ function disconnectLocal(){
 $("market").addEventListener("change",syncMarketUI);
 $("realConfirm").addEventListener("change",updateModeNotice);
 // V10: make Start/Stop controls explicit buttons and keep their handlers resilient.
-$("startBtn").addEventListener("click",()=>{ if($('startBtn').disabled)return; startBot(); });
-$("stopBtn").addEventListener("click",()=>{ if($('stopBtn').disabled)return; stopBot(); });
+
 handleOAuthReturn();
 </script>
 </body>
