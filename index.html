@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Deriv Strategy Hub V6</title>
+<title>Deriv Strategy Hub V7</title>
 <style>
 :root{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#172033;background:#f5f7fb}
 *{box-sizing:border-box}body{margin:0}.wrap{max-width:1050px;margin:auto;padding:18px}
@@ -46,7 +46,7 @@ button.secondary{background:#e7ebf2;color:#172033}button.danger{background:#b423
 
 <section class="card">
   <div class="feed">
-    <div><strong>Volatility 100 (1s)</strong><div class="small">Live Deriv public market feed</div></div>
+    <div><strong id="feedName">Volatility 100 (1s)</strong><div class="small">Live Deriv public market feed</div></div>
     <div id="quote" class="value">—</div>
   </div>
 </section>
@@ -54,7 +54,7 @@ button.secondary{background:#e7ebf2;color:#172033}button.danger{background:#b423
 <section class="card">
 <h2>Bot Builder</h2>
 <div class="controls">
-  <label>Market<select id="market"><option value="1HZ100V">Volatility 100 (1s)</option></select></label>
+  <label>Market<select id="market"><option value="1HZ100V">Volatility 100 (1s)</option><option value="1HZ75V">Volatility 75 (1s)</option><option value="1HZ50V">Volatility 50 (1s)</option><option value="1HZ25V">Volatility 25 (1s)</option></select></label>
   <label>Contract<select id="contract"><option value="DIGITOVER">Over</option></select></label>
   <label>Barrier<select id="barrier"><option value="1">Over 1</option><option value="2">Over 2</option></select></label>
   <label>Duration<input value="1 Tick" disabled></label>
@@ -112,6 +112,7 @@ let accounts = [];
 let selectedAccount = null;
 let ws = null;
 let publicWs = null;
+let publicReqId = 10;
 let botRunning = false;
 let waitingForContract = false;
 let requestId = 100;
@@ -139,7 +140,27 @@ function updateBotStats(){
 
 function connectPublicFeed(){
   publicWs = new WebSocket("wss://api.derivws.com/trading/v1/options/ws/public");
-  publicWs.onopen=()=>{publicWs.send(JSON.stringify({ticks:"1HZ100V",subscribe:1,req_id:1}));$("feedStatus").textContent="LIVE"};
+  function marketName(symbol){
+  const names={"1HZ100V":"Volatility 100 (1s)","1HZ75V":"Volatility 75 (1s)","1HZ50V":"Volatility 50 (1s)","1HZ25V":"Volatility 25 (1s)"};
+  return names[symbol]||symbol;
+}
+function selectedMarket(){return $("market")?.value||"1HZ100V";}
+function syncMarketUI(){
+  const name=marketName(selectedMarket());
+  $("feedName").textContent=name;
+  const sel=$("market");
+  if(sel) sel.title=name;
+  if(publicWs&&publicWs.readyState===WebSocket.OPEN){
+    try{publicWs.send(JSON.stringify({forget_all:"ticks",req_id:++publicReqId}));}catch{}
+    subscribePublicMarket();
+  }
+  log("Market selected • "+name);
+}
+function subscribePublicMarket(){
+  if(!publicWs||publicWs.readyState!==WebSocket.OPEN)return;
+  publicWs.send(JSON.stringify({ticks:selectedMarket(),subscribe:1,req_id:++publicReqId}));
+}
+publicWs.onopen=()=>{subscribePublicMarket();$("feedStatus").textContent="LIVE"};
   publicWs.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.msg_type==="tick"){const q=String(d.tick.quote);$("quote").textContent=Number(d.tick.quote).toFixed(2);const digit=q.replace(/\D/g,"").slice(-1);$("lastDigit").textContent=digit}}catch{}};
   publicWs.onclose=()=>{$("feedStatus").textContent="RECONNECTING";setTimeout(connectPublicFeed,2000)};
 }
@@ -358,9 +379,9 @@ function startBot(){
   if(!ws||ws.readyState!==WebSocket.OPEN){alert("Connect Trading first.");return}
   if(!selectedAccount){alert("Select an account.");return}
   if(!selectedAccount.is_demo&&!$("realConfirm").checked){alert("REAL confirmation is required.");return}
-  currentStake=Number($("stake").value)||1;currentStep=1;trades=0;wins=0;losses=0;totalProfit=0;sessionStartBalance=liveBalance!=null?liveBalance:Number(selectedAccount?.balance);updateBotStats();botRunning=true;waitingForContract=false;requestLiveBalance();
+  currentStake=Number($("stake").value)||1;currentStep=1;trades=0;wins=0;losses=0;totalProfit=0;sessionStartBalance=liveBalance!=null?liveBalance:Number(selectedAccount?.balance);$("balanceSync").textContent=`Starting balance: ${Number(sessionStartBalance).toFixed(2)} ${selectedAccount.currency}`;updateBotStats();botRunning=true;waitingForContract=false;requestLiveBalance();
   $("startBtn").disabled=true;$("stopBtn").disabled=false;
-  log("BOT STARTED • "+(selectedAccount.is_demo?"DEMO":"REAL")+" • Over 1 • 1 tick");
+  log("BOT STARTED • "+(selectedAccount.is_demo?"DEMO":"REAL")+" • "+marketName(selectedMarket())+" • Over 1 • 1 tick");
   placeTrade();
 }
 function stopBot(){
@@ -378,7 +399,7 @@ function placeTrade(){
   waitingForContract=true;
   const req=++requestId;
   pending.set(req,{type:"proposal",stake,barrier});
-  send({proposal:1,amount:stake,basis:"stake",contract_type:"DIGITOVER",currency:selectedAccount.currency, duration:1,duration_unit:"t",barrier:String(barrier),underlying_symbol:"1HZ100V",req_id:req});
+  send({proposal:1,amount:stake,basis:"stake",contract_type:"DIGITOVER",currency:selectedAccount.currency, duration:1,duration_unit:"t",barrier:String(barrier),underlying_symbol:selectedMarket(),req_id:req});
   log(`Proposal: Over ${barrier} • stake ${stake.toFixed(2)} ${selectedAccount.currency}`);
 }
 function updateLiveBalance(b,currency){
@@ -394,6 +415,9 @@ function updateLiveBalance(b,currency){
     const opt=Array.from(sel.options).find(o=>o.value===selectedAccount.id);
     if(opt)opt.textContent=`${selectedAccount.is_demo?"DEMO":"REAL"} • ${selectedAccount.id} • ${n.toFixed(2)} ${cur}`;
   }
+  const start=sessionStartBalance!=null?Number(sessionStartBalance):null;
+  if(start!=null&&Number.isFinite(start)) $("balanceSync").textContent=`Since session start: ${(n-start).toFixed(2)} ${cur}`;
+  else $("balanceSync").textContent="Live Deriv balance";
   updateBotStats();
 }
 function requestLiveBalance(){
@@ -466,6 +490,7 @@ function disconnectLocal(){
   $("accountStatus").textContent="Not connected";$("balance").textContent="—";
   $("accountSelect").innerHTML="<option>Connect an account first</option>";$("tradingConnectBtn").disabled=true;$("startBtn").disabled=true;
 }
+$("market").addEventListener("change",syncMarketUI);
 $("realConfirm").addEventListener("change",updateModeNotice);
 handleOAuthReturn();
 </script>
