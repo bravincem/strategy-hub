@@ -203,6 +203,16 @@ label{display:block;font-size:12px;color:#7f91a7;font-weight:800;margin-bottom:6
 <div class="modal" id="modal"><div class="modalBox"><button class="close" id="closeModal">×</button><h2 id="modalTitle">API Token</h2><p class="status">For this one-file build, OAuth is preferred. Manual tokens are kept only in this browser session and are never displayed back to the page.</p><input class="field" id="manualToken" placeholder="Paste DEMO token only"><button class="btn" style="margin-top:12px" id="manualConnect">Connect token</button><div class="notice" style="margin-top:12px">Never paste a client secret, password or OTP here.</div></div></div>
 
 <script>
+/* CONNECTION BOOTSTRAP: capture OAuth session before the Hub app starts. */
+(function(){
+  try{
+    const p=new URLSearchParams(location.search);
+    const s=p.get("session")||p.get("sid")||p.get("session_id")||"";
+    if(s){localStorage.setItem("deriv_strategy_session",s);window.__DERIV_OAUTH_SESSION__=s;}
+  }catch(e){}
+})();
+</script>
+<script>
 (() => {
 "use strict";
 
@@ -348,19 +358,13 @@ async function connectManualToken(token){
 $("manualConnect").onclick=()=>connectManualToken($("manualToken").value.trim());
 
 async function handleOAuthReturn(){
-  // OAuth returns ?deriv_connected=1&session=... . Capture it FIRST,
-  // then use the same Bearer-session flow that the previously working Hub used.
   const p=new URLSearchParams(window.location.search);
-  const returned=p.get("session") || p.get("sid") || p.get("session_id") || "";
+  const returned=window.__DERIV_OAUTH_SESSION__ || p.get("session") || p.get("sid") || p.get("session_id") || "";
   const saved=localStorage.getItem("deriv_strategy_session") || "";
   const sessionId=returned || saved;
 
-  if(returned){
-    localStorage.setItem("deriv_strategy_session",returned);
-    state.sessionId=returned;
-  } else if(saved){
-    state.sessionId=saved;
-  }
+  if(returned){ localStorage.setItem("deriv_strategy_session",returned); }
+  state.sessionId=sessionId;
 
   if(!sessionId){
     setConn(false);
@@ -368,53 +372,53 @@ async function handleOAuthReturn(){
     return false;
   }
 
-  // Show that OAuth returned before account lookup completes.
-  log("Deriv login returned. Loading DEMO account…");
+  log("Deriv login returned. Connecting DEMO account…");
 
-  try{
-    const headers={"Authorization":"Bearer "+sessionId,"Content-Type":"application/json"};
-    const r=await fetch(API_BASE+"/api/accounts",{
-      method:"GET",headers,credentials:"include",cache:"no-store"
-    });
-    const raw=await r.text();
-    let d; try{d=JSON.parse(raw)}catch{throw new Error("Account API returned non-JSON (HTTP "+r.status+")")}
-    if(!r.ok || d.ok===false) throw new Error(d.error||d.message||("Account request failed (HTTP "+r.status+")"));
+  const attempts=[
+    {name:"Bearer session", headers:{"Authorization":"Bearer "+sessionId,"Content-Type":"application/json"}},
+    {name:"Session header", headers:{"X-Deriv-Session":sessionId,"Content-Type":"application/json"}}
+  ];
 
-    const rawAccounts=Array.isArray(d.accounts)
-      ? d.accounts
-      : (Array.isArray(d.data?.accounts)?d.data.accounts:(Array.isArray(d.data)?d.data:[]));
+  let lastError="Unknown connection error";
+  for(const attempt of attempts){
+    try{
+      const r=await fetch(API_BASE+"/api/accounts",{method:"GET",headers:attempt.headers,credentials:"include",cache:"no-store"});
+      const raw=await r.text();
+      let d;
+      try{d=JSON.parse(raw)}catch{throw new Error("Account API returned non-JSON (HTTP "+r.status+")");}
+      if(!r.ok || d.ok===false) throw new Error(d.error||d.message||("Account request failed (HTTP "+r.status+")"));
 
-    state.accounts=rawAccounts.map(a=>{
-      const id=a.id||a.account_id||a.accountId||a.loginid;
-      const currency=a.currency||a.account_currency||"USD";
-      const rawBalance=typeof a.balance==="object"&&a.balance!==null?a.balance.balance:a.balance;
-      const balance=Number(rawBalance);
-      const demo=Boolean(a.is_demo??a.isDemo??a.demo??(typeof id==="string"&&/^(VRT|VR|DOT)/i.test(id)));
-      return id?{id,currency,balance:Number.isFinite(balance)?balance:0,is_demo:demo}:null;
-    }).filter(Boolean);
+      const rawAccounts=Array.isArray(d.accounts)?d.accounts:(Array.isArray(d.data?.accounts)?d.data.accounts:(Array.isArray(d.data)?d.data:[]));
+      state.accounts=rawAccounts.map(a=>{
+        const id=a.id||a.account_id||a.accountId||a.loginid;
+        if(!id)return null;
+        const currency=a.currency||a.account_currency||"USD";
+        const rawBalance=typeof a.balance==="object"&&a.balance!==null?a.balance.balance:a.balance;
+        const balance=Number(rawBalance);
+        const demo=Boolean(a.is_demo??a.isDemo??a.demo??(typeof id==="string"&&/^(VRT|VR|DOT)/i.test(id)));
+        return {id,currency,balance:Number.isFinite(balance)?balance:0,is_demo:demo};
+      }).filter(Boolean);
 
-    // Prefer DEMO exactly as before. Never silently switch to REAL.
-    const demo=state.accounts.find(a=>a.is_demo);
-    if(!demo) throw new Error("No DEMO account was returned by Deriv.");
+      const demo=state.accounts.find(a=>a.is_demo);
+      if(!demo) throw new Error("Deriv responded, but no DEMO account was found.");
 
-    state.sessionId=sessionId;
-    state.account=demo;
-    state.balance=demo.balance;
-    setConn(true);
-    $("accountId").textContent=demo.id;
-    $("balance").textContent=(demo.currency||"USD")+" "+Number(demo.balance||0).toFixed(2);
-    log("DEMO account connected.",true);
-
-    // Remove the OAuth session from the address bar only AFTER it was saved.
-    if(window.location.search){
-      history.replaceState({},document.title,window.location.pathname+window.location.hash);
+      state.account=demo;
+      state.balance=demo.balance;
+      state.sessionId=sessionId;
+      setConn(true);
+      $("accountId").textContent=demo.id;
+      $("balance").textContent=(demo.currency||"USD")+" "+Number(demo.balance||0).toFixed(2);
+      log("DEMO account connected.",true);
+      if(location.search) history.replaceState({},document.title,location.pathname+location.hash);
+      return true;
+    }catch(e){
+      lastError=e.message||String(e);
     }
-    return true;
-  }catch(e){
-    setConn(false);
-    log("Connection failed: "+e.message);
-    return false;
   }
+
+  setConn(false);
+  log("Connection failed: "+lastError);
+  return false;
 }
 
 let sessionRetryTimer=null;
@@ -657,7 +661,8 @@ async function init(){
   $("accountStatus").textContent="Checking connection…";
   connectPublic();
   renderDistribution();renderAnalysis();drawChart();
-  await handleOAuthReturn();
+  try{ await handleOAuthReturn(); }catch(e){ setConn(false); log("Connection startup error: "+(e.message||e)); }
+  startSessionRecovery();
 }
 window.addEventListener("resize",drawChart);
 init();
