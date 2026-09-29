@@ -348,37 +348,37 @@ async function connectManualToken(token){
 $("manualConnect").onclick=()=>connectManualToken($("manualToken").value.trim());
 
 async function handleOAuthReturn(){
-  const p=new URLSearchParams(location.search);
-  const returned=p.get("session") || p.get("sid") || p.get("session_id");
+  // OAuth returns ?deriv_connected=1&session=... . Capture it FIRST,
+  // then use the same Bearer-session flow that the previously working Hub used.
+  const p=new URLSearchParams(window.location.search);
+  const returned=p.get("session") || p.get("sid") || p.get("session_id") || "";
   const saved=localStorage.getItem("deriv_strategy_session") || "";
   const sessionId=returned || saved;
 
   if(returned){
     localStorage.setItem("deriv_strategy_session",returned);
+    state.sessionId=returned;
+  } else if(saved){
+    state.sessionId=saved;
   }
 
   if(!sessionId){
     setConn(false);
     log("Not connected. Click Log In to connect your DEMO account.");
-    return;
+    return false;
   }
 
+  // Show that OAuth returned before account lookup completes.
+  log("Deriv login returned. Loading DEMO account…");
+
   try{
-    const headers={"content-type":"application/json","Authorization":"Bearer "+sessionId};
+    const headers={"Authorization":"Bearer "+sessionId,"Content-Type":"application/json"};
     const r=await fetch(API_BASE+"/api/accounts",{
-      method:"GET",
-      headers,
-      credentials:"include",
-      cache:"no-store"
+      method:"GET",headers,credentials:"include",cache:"no-store"
     });
     const raw=await r.text();
-    let d;
-    try{d=JSON.parse(raw)}catch{
-      throw new Error("Account API returned non-JSON (HTTP "+r.status+")");
-    }
-    if(!r.ok || d.ok===false){
-      throw new Error(d.error||d.message||("Account request failed (HTTP "+r.status+")"));
-    }
+    let d; try{d=JSON.parse(raw)}catch{throw new Error("Account API returned non-JSON (HTTP "+r.status+")")}
+    if(!r.ok || d.ok===false) throw new Error(d.error||d.message||("Account request failed (HTTP "+r.status+")"));
 
     const rawAccounts=Array.isArray(d.accounts)
       ? d.accounts
@@ -393,8 +393,9 @@ async function handleOAuthReturn(){
       return id?{id,currency,balance:Number.isFinite(balance)?balance:0,is_demo:demo}:null;
     }).filter(Boolean);
 
+    // Prefer DEMO exactly as before. Never silently switch to REAL.
     const demo=state.accounts.find(a=>a.is_demo);
-    if(!demo)throw new Error("No DEMO account was returned by Deriv.");
+    if(!demo) throw new Error("No DEMO account was returned by Deriv.");
 
     state.sessionId=sessionId;
     state.account=demo;
@@ -404,14 +405,34 @@ async function handleOAuthReturn(){
     $("balance").textContent=(demo.currency||"USD")+" "+Number(demo.balance||0).toFixed(2);
     log("DEMO account connected.",true);
 
-    if(location.search){
-      history.replaceState({},document.title,location.pathname);
+    // Remove the OAuth session from the address bar only AFTER it was saved.
+    if(window.location.search){
+      history.replaceState({},document.title,window.location.pathname+window.location.hash);
     }
+    return true;
   }catch(e){
     setConn(false);
     log("Connection failed: "+e.message);
+    return false;
   }
 }
+
+let sessionRetryTimer=null;
+async function retrySavedSession(){
+  if(state.connected)return;
+  const saved=localStorage.getItem("deriv_strategy_session")||state.sessionId||"";
+  if(!saved)return;
+  state.sessionId=saved;
+  await handleOAuthReturn();
+  startSessionRecovery();
+}
+function startSessionRecovery(){
+  if(sessionRetryTimer)clearInterval(sessionRetryTimer);
+  sessionRetryTimer=setInterval(()=>{
+    if(!state.connected && (localStorage.getItem("deriv_strategy_session")||state.sessionId)) retrySavedSession();
+  },5000);
+}
+
 async function refreshBalance(){
   if(!state.account)return;
   try{
@@ -473,7 +494,7 @@ async function buyProposal(id){
         else if(d.error){clearTimeout(timer);ws.onmessage=null;reject(new Error(d.error.message||"Buy rejected"))}
       }catch(err){}
     };
-    ws.send(JSON.stringify({buy:id,price:1000}));
+    ws.send(JSON.stringify({buy:id,price:Math.max(0.01,Number(state.lastProposal?.ask_price)||Number(state.lastProposal?.price)||1000)}));
   });
 }
 async function waitForSettlement(contractId){
