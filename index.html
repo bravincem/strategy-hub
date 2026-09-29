@@ -347,28 +347,48 @@ async function connectManualToken(token){
 }
 $("manualConnect").onclick=()=>connectManualToken($("manualToken").value.trim());
 
+function sessionHeaders(extra={}){
+  const sid=localStorage.getItem("deriv_hub_session")||sessionStorage.getItem("deriv_hub_session");
+  return sid ? {...extra,"X-Session-ID":sid} : extra;
+}
+
 async function handleOAuthReturn(){
   const p=new URLSearchParams(location.search);
-  if(!p.get("code")&&!p.get("oauth"))return;
+  const sid=p.get("session")||p.get("session_id")||p.get("deriv_session");
+  const connected=p.get("deriv_connected")==="1";
+  if(sid){
+    localStorage.setItem("deriv_hub_session",sid);
+    sessionStorage.setItem("deriv_hub_session",sid);
+  }
+  const saved=localStorage.getItem("deriv_hub_session")||sessionStorage.getItem("deriv_hub_session");
+  if(!sid&&!saved&&!connected)return;
   try{
-    const r=await fetch(API_BASE+"/api/accounts",{credentials:"include"});
-    if(!r.ok)throw new Error("Could not load accounts");
-    const d=await r.json(); state.accounts=(d.accounts||[]).map(a=>({id:a.id||a.account_id||a.loginid,currency:a.currency,balance:Number(a.balance||0),is_demo:!!a.is_demo}));
+    const r=await fetch(API_BASE+"/api/accounts",{credentials:"include",headers:sessionHeaders()});
+    if(!r.ok)throw new Error("Could not load accounts (HTTP "+r.status+")");
+    const d=await r.json();
+    state.accounts=(d.accounts||[]).map(a=>({id:a.id||a.account_id||a.loginid,currency:a.currency,balance:Number(a.balance||0),is_demo:!!a.is_demo}));
     const demo=state.accounts.find(a=>a.is_demo)||state.accounts[0];
-    if(demo){state.account=demo;state.balance=demo.balance;setConn(true);$("accountId").textContent=demo.id;$("balance").textContent=(demo.currency||"USD")+" "+Number(demo.balance||0).toFixed(2);log("DEMO account connected.",true)}
+    if(demo){
+      state.account=demo;state.balance=demo.balance;setConn(true);
+      $("accountId").textContent=demo.id;
+      $("balance").textContent=(demo.currency||"USD")+" "+Number(demo.balance||0).toFixed(2);
+      log("DEMO account connected.",true);
+    } else {
+      log("Deriv connected, but no account was returned.");
+    }
   }catch(e){log("OAuth returned, but account loading failed: "+e.message)}
   history.replaceState({},document.title,location.pathname);
 }
 async function refreshBalance(){
   if(!state.account)return;
   try{
-    const r=await fetch(API_BASE+"/api/balance?account_id="+encodeURIComponent(state.account.id),{credentials:"include"});
+    const r=await fetch(API_BASE+"/api/balance?account_id="+encodeURIComponent(state.account.id),{credentials:"include",headers:sessionHeaders()});
     if(r.ok){const d=await r.json();const b=Number(d.balance??d.data?.balance);if(Number.isFinite(b)){state.balance=b;$("balance").textContent=(state.account.currency||"USD")+" "+b.toFixed(2)}}
   }catch(e){}
 }
 
 async function getAuthWs(){
-  const r=await fetch(API_BASE+"/api/ws-url",{method:"POST",headers:{"content-type":"application/json"},credentials:"include",body:JSON.stringify({account_id:state.account.id})});
+  const r=await fetch(API_BASE+"/api/ws-url",{method:"POST",headers:sessionHeaders({"content-type":"application/json"}),credentials:"include",body:JSON.stringify({account_id:state.account.id})});
   if(!r.ok)throw new Error("Trading channel unavailable");
   const d=await r.json();return d.data?.url||d.ws_url||d.websocket_url||d.url;
 }
