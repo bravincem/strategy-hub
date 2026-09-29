@@ -211,11 +211,10 @@ const PUBLIC_WS = "wss://api.derivws.com/trading/v1/options/ws/public";
 const OLD_WS = "wss://ws.derivws.com/websockets/v3?app_id=1089";
 
 const $ = id => document.getElementById(id);
-const SESSION_KEY = "deriv_strategy_session";
 const state = {
-  ws:null, authWs:null, accounts:[], account:null, balance:null, connected:false, sessionId:localStorage.getItem(SESSION_KEY)||"",
+  ws:null, authWs:null, accounts:[], account:null, balance:null, connected:false, sessionId:localStorage.getItem("deriv_strategy_session")||"",
   market:"1HZ100V", quote:null, digits:[], prices:[], botRunning:false, botTimer:null,
-  bot:{trades:0,wins:0,losses:0,pl:0,nextStake:1,lossStep:0,inFlight:false},
+  bot:{trades:0,wins:0,losses:0,pl:0,nextStake:1,lossStep:0},
   np:{trades:0,wins:0,losses:0,pl:0}, lastProposal:null
 };
 
@@ -350,112 +349,237 @@ $("manualConnect").onclick=()=>connectManualToken($("manualToken").value.trim())
 
 async function handleOAuthReturn(){
   const p=new URLSearchParams(location.search);
-  const returned=p.get("session");
-  if(returned){state.sessionId=returned;localStorage.setItem(SESSION_KEY,returned);history.replaceState({},document.title,location.pathname);}
+  const returned=p.get("session") || p.get("sid") || p.get("session_id");
+  const saved=localStorage.getItem("deriv_strategy_session") || "";
+  const sessionId=returned || saved;
+
+  if(returned){
+    localStorage.setItem("deriv_strategy_session",returned);
+  }
+
+  if(!sessionId){
+    setConn(false);
+    log("Not connected. Click Log In to connect your DEMO account.");
+    return;
+  }
+
   try{
-    const r=await fetch(API_BASE+"/api/accounts",{credentials:"include",headers:state.sessionId?{"Authorization":"Bearer "+state.sessionId}:{} ,cache:"no-store"});
-    if(!r.ok)throw new Error("Could not load accounts (HTTP "+r.status+")");
-    const d=await r.json();
-    const raw=Array.isArray(d.accounts)?d.accounts:(Array.isArray(d.data?.accounts)?d.data.accounts:(Array.isArray(d.data)?d.data:[]));
-    state.accounts=raw.map(a=>({id:a.id||a.account_id||a.accountId||a.loginid,currency:a.currency||a.account_currency||"USD",balance:Number(typeof a.balance==="object"?a.balance?.balance:a.balance||0),is_demo:!!(a.is_demo??a.isDemo??a.demo)})).filter(a=>a.id);
+    const headers={"content-type":"application/json","Authorization":"Bearer "+sessionId};
+    const r=await fetch(API_BASE+"/api/accounts",{
+      method:"GET",
+      headers,
+      credentials:"include",
+      cache:"no-store"
+    });
+    const raw=await r.text();
+    let d;
+    try{d=JSON.parse(raw)}catch{
+      throw new Error("Account API returned non-JSON (HTTP "+r.status+")");
+    }
+    if(!r.ok || d.ok===false){
+      throw new Error(d.error||d.message||("Account request failed (HTTP "+r.status+")"));
+    }
+
+    const rawAccounts=Array.isArray(d.accounts)
+      ? d.accounts
+      : (Array.isArray(d.data?.accounts)?d.data.accounts:(Array.isArray(d.data)?d.data:[]));
+
+    state.accounts=rawAccounts.map(a=>{
+      const id=a.id||a.account_id||a.accountId||a.loginid;
+      const currency=a.currency||a.account_currency||"USD";
+      const rawBalance=typeof a.balance==="object"&&a.balance!==null?a.balance.balance:a.balance;
+      const balance=Number(rawBalance);
+      const demo=Boolean(a.is_demo??a.isDemo??a.demo??(typeof id==="string"&&/^(VRT|VR|DOT)/i.test(id)));
+      return id?{id,currency,balance:Number.isFinite(balance)?balance:0,is_demo:demo}:null;
+    }).filter(Boolean);
+
     const demo=state.accounts.find(a=>a.is_demo);
-    if(demo){state.account=demo;state.balance=demo.balance;setConn(true);$("accountId").textContent=demo.id;$("balance").textContent=(demo.currency||"USD")+" "+Number(demo.balance||0).toFixed(2);log("DEMO account connected.",true);}
-    else {setConn(false);log("No DEMO account was returned.");}
-  }catch(e){setConn(false);log("Connection failed: "+e.message);}
+    if(!demo)throw new Error("No DEMO account was returned by Deriv.");
+
+    state.sessionId=sessionId;
+    state.account=demo;
+    state.balance=demo.balance;
+    setConn(true);
+    $("accountId").textContent=demo.id;
+    $("balance").textContent=(demo.currency||"USD")+" "+Number(demo.balance||0).toFixed(2);
+    log("DEMO account connected.",true);
+
+    if(location.search){
+      history.replaceState({},document.title,location.pathname);
+    }
+  }catch(e){
+    setConn(false);
+    log("Connection failed: "+e.message);
+  }
 }
 async function refreshBalance(){
   if(!state.account)return;
   try{
-    const r=await fetch(API_BASE+"/api/balance?account_id="+encodeURIComponent(state.account.id),{credentials:"include"});
+    const headers=state.sessionId?{"Authorization":"Bearer "+state.sessionId}:{};    const r=await fetch(API_BASE+"/api/balance?account_id="+encodeURIComponent(state.account.id),{headers,credentials:"include",cache:"no-store"});
     if(r.ok){const d=await r.json();const b=Number(d.balance??d.data?.balance);if(Number.isFinite(b)){state.balance=b;$("balance").textContent=(state.account.currency||"USD")+" "+b.toFixed(2)}}
   }catch(e){}
 }
 
 async function getAuthWs(){
-  const headers={"content-type":"application/json"};
-  if(state.sessionId)headers.Authorization="Bearer "+state.sessionId;
-  const r=await fetch(API_BASE+"/api/ws-url",{method:"POST",headers,credentials:"include",body:JSON.stringify({account_id:state.account.id})});
-  if(!r.ok)throw new Error("Trading channel unavailable (HTTP "+r.status+")");
+  const headers={"content-type":"application/json"};  if(state.sessionId)headers.Authorization="Bearer "+state.sessionId;  const r=await fetch(API_BASE+"/api/ws-url",{method:"POST",headers,credentials:"include",cache:"no-store",body:JSON.stringify({account_id:state.account.id})});
+  if(!r.ok)throw new Error("Trading channel unavailable");
   const d=await r.json();
   const url=d.data?.url||d.ws_url||d.websocket_url||d.url;
-  if(!url||!/^wss:\/\//i.test(url))throw new Error("Invalid trading WebSocket URL");
+  if(!url||!String(url).startsWith("wss://"))throw new Error("Invalid trading WebSocket URL");
   return url;
 }
-function waitOpen(ws){return new Promise((resolve,reject)=>{if(ws.readyState===1)return resolve();const t=setTimeout(()=>reject(new Error("Trading socket timeout")),8000);ws.addEventListener("open",()=>{clearTimeout(t);resolve()},{once:true});ws.addEventListener("error",()=>{clearTimeout(t);reject(new Error("Trading socket error"))},{once:true});});}
 async function ensureAuthWs(){
   if(state.authWs&&state.authWs.readyState===1)return state.authWs;
   const url=await getAuthWs();
-  state.authWs=new WebSocket(url);
-  await waitOpen(state.authWs);
-  return state.authWs;
+  try{if(state.authWs)state.authWs.close()}catch(e){}
+  const ws=new WebSocket(url);state.authWs=ws;
+  await new Promise((resolve,reject)=>{
+    let done=false;
+    const finish=(fn,v)=>{if(done)return;done=true;clearTimeout(t);fn(v)};
+    const t=setTimeout(()=>finish(reject,new Error("Trading socket timeout")),9000);
+    ws.onopen=()=>finish(resolve,ws);
+    ws.onerror=()=>finish(reject,new Error("Trading socket error"));
+    ws.onclose=()=>{if(!done)finish(reject,new Error("Trading socket closed"))};
+  });
+  clearInterval(state.authPingTimer);
+  state.authPingTimer=setInterval(()=>{if(ws.readyState===1)try{ws.send(JSON.stringify({ping:1}))}catch(e){}},8000);
+  ws.onclose=()=>{clearInterval(state.authPingTimer);state.authPingTimer=null;};
+  return ws;
 }
-async function realDemoTrade(stake,barrier){
-  if(!state.account||!state.account.is_demo)throw new Error("DEMO account required");
+async function demoProposal(contract,stake,threshold){
+  if(!state.account)throw new Error("Connect DEMO first");
+  if(!state.account.is_demo)throw new Error("DEMO account required");
   const ws=await ensureAuthWs();
-  const req=Date.now();
-  const proposal=await new Promise((resolve,reject)=>{
-    const t=setTimeout(()=>reject(new Error("Proposal timeout")),8000);
-    const handler=e=>{try{const d=JSON.parse(e.data);if(d.error){clearTimeout(t);ws.removeEventListener("message",handler);reject(new Error(d.error.message));}else if(d.msg_type==="proposal"&&d.proposal){clearTimeout(t);ws.removeEventListener("message",handler);resolve(d.proposal);}}catch{}};
-    ws.addEventListener("message",handler);
-    ws.send(JSON.stringify({proposal:1,amount:Number(stake),basis:"stake",contract_type:"DIGITOVER",currency:state.account.currency||"USD",duration:1,duration_unit:"t",barrier:String(barrier),underlying_symbol:state.market,req_id:req}));
-  });
-  const price=Math.ceil(Number(proposal.ask_price)*100)/100;
-  if(!proposal.id||!Number.isFinite(price))throw new Error("Invalid proposal price");
-  const buy=await new Promise((resolve,reject)=>{
-    const t=setTimeout(()=>reject(new Error("Buy timeout")),8000);
-    const handler=e=>{try{const d=JSON.parse(e.data);if(d.error){clearTimeout(t);ws.removeEventListener("message",handler);reject(new Error(d.error.message));}else if(d.msg_type==="buy"&&d.buy){clearTimeout(t);ws.removeEventListener("message",handler);resolve(d.buy);}}catch{}};
-    ws.addEventListener("message",handler);
-    ws.send(JSON.stringify({buy:proposal.id,price,req_id:req+1}));
-  });
-  const cid=buy.contract_id;
-  if(!cid)throw new Error("No contract ID returned");
-  log("DEMO contract bought #"+cid,true);
   return await new Promise((resolve,reject)=>{
-    const t=setTimeout(()=>reject(new Error("Contract result timeout")),12000);
-    const handler=e=>{try{const d=JSON.parse(e.data);if(d.error){clearTimeout(t);ws.removeEventListener("message",handler);reject(new Error(d.error.message));}else if(d.msg_type==="proposal_open_contract"&&d.proposal_open_contract){const c=d.proposal_open_contract;if(c.is_sold||c.status==="sold"||c.status==="expired"){clearTimeout(t);ws.removeEventListener("message",handler);resolve(c);}}}catch{}};
-    ws.addEventListener("message",handler);
-    ws.send(JSON.stringify({proposal_open_contract:1,contract_id:cid,subscribe:1,req_id:req+2}));
+    const timer=setTimeout(()=>{ws.onmessage=null;reject(new Error("Proposal timeout"))},9000);
+    ws.onmessage=e=>{
+      try{
+        const d=JSON.parse(e.data);
+        if(d.proposal){clearTimeout(timer);ws.onmessage=null;resolve(d.proposal)}
+        else if(d.error){clearTimeout(timer);ws.onmessage=null;reject(new Error(d.error.message||"Proposal rejected"))}
+      }catch(err){}
+    };
+    ws.send(JSON.stringify({proposal:1,amount:Number(stake),basis:"stake",contract_type:contract,currency:state.account.currency||"USD",duration:Number($("duration").value)||1,duration_unit:"t",symbol:state.market,barrier:String(threshold),passthrough:{hub:"strategy-hub",request:Date.now()}}));
   });
+}
+async function buyProposal(id){
+  const ws=await ensureAuthWs();
+  return await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{ws.onmessage=null;reject(new Error("Buy timeout"))},9000);
+    ws.onmessage=e=>{
+      try{
+        const d=JSON.parse(e.data);
+        if(d.buy){clearTimeout(timer);ws.onmessage=null;resolve(d.buy)}
+        else if(d.error){clearTimeout(timer);ws.onmessage=null;reject(new Error(d.error.message||"Buy rejected"))}
+      }catch(err){}
+    };
+    ws.send(JSON.stringify({buy:id,price:1000}));
+  });
+}
+async function waitForSettlement(contractId){
+  const ws=await ensureAuthWs();
+  return await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{ws.onmessage=null;reject(new Error("Contract result timeout"))},15000);
+    ws.onmessage=e=>{
+      try{
+        const d=JSON.parse(e.data);
+        if(d.error){clearTimeout(timer);ws.onmessage=null;reject(new Error(d.error.message||"Contract monitoring error"));return}
+        if(d.proposal_open_contract){
+          const c=d.proposal_open_contract;
+          if(c.is_sold===1||c.is_sold===true||["won","lost","sold"].includes(String(c.status||"").toLowerCase())){
+            clearTimeout(timer);ws.onmessage=null;resolve(c);
+          }
+        }
+      }catch(err){}
+    };
+    ws.send(JSON.stringify({proposal_open_contract:1,contract_id:String(contractId),subscribe:1}));
+  });
+}
+async function executeDemoTrade(contract,stake,threshold){
+  const p=await demoProposal(contract,stake,threshold);
+  state.lastProposal=p;
+  const b=await buyProposal(p.id);
+  const id=b.contract_id||b.buy_id;
+  if(!id)throw new Error("Purchase accepted but no contract id was returned");
+  const result=await waitForSettlement(id);
+  const profit=Number(result.profit);
+  const win=Number.isFinite(profit)?profit>0:String(result.status||"").toLowerCase()==="won";
+  return {proposal:p,buy:b,result,profit:Number.isFinite(profit)?profit:(win?0:-stake),win,contractId:id};
 }
 async function demoTrade(){
-  try{const c=await realDemoTrade(Number($("stake").value)||1,Number($("threshold").value)||1);log("DEMO result: "+(Number(c.profit)>0?"WIN":"LOSS")+" • P/L "+Number(c.profit||0).toFixed(2),true);refreshBalance();}catch(e){log("Demo trade not sent: "+e.message);}
+  if(!state.account){alert("Please connect a DEMO account first.");return}
+  if(!state.account.is_demo){alert("This hub is configured for DEMO testing. Select a demo account.");return}
+  const contract=$("contract").value, threshold=Number($("threshold").value), stake=Number($("stake").value);
+  try{
+    const t=await executeDemoTrade(contract,stake,threshold);
+    log(`DEMO ${t.win?"WIN":"LOSS"} • ${t.profit>=0?"+":""}${t.profit.toFixed(2)} • contract ${t.contractId}`,t.win);
+    refreshBalance();
+  }catch(e){log("Demo trade failed: "+e.message)}
 }
 
-
+function tape(msg){
+  const el=$("tape");if(!el)return;
+  const row=document.createElement("div");row.className="status";row.textContent=msg;el.prepend(row);
+  while(el.children.length>12)el.lastChild.remove();
+}
+async function runLiveBot(){
+  if(state.botRunning){stopBot();return}
+  if(!state.account){alert("Connect the DEMO account first.");return}
+  if(!state.account.is_demo){alert("DEMO account required.");return}
+  if(!$("demoOnly").checked){alert("Keep Demo-only trading enabled for this build.");return}
+  resetStats();state.botRunning=true;state.botBusy=false;
+  $("builderRun").textContent="■ Stop Bot";$("bottomRun").textContent="■ Stop";
+  $("builderStatus").textContent="DEMO bot running • waiting for ticks";$("bottomStatus").textContent="DEMO bot running";
+  tape("Started DEMO • Over 1 → Over 2 → reset • 1 tick");
+  try{await ensureAuthWs()}catch(e){stopBot();log("Trading channel failed: "+e.message);return}
+  processNextLiveTrade();
+}
+async function processNextLiveTrade(){
+  if(!state.botRunning||state.botBusy)return;
+  if(state.bot.pl>=Number($("takeProfit").value)||state.bot.pl<=-Math.abs(Number($("stopLoss").value))){tape("Risk limit reached • bot stopped");stopBot();return}
+  state.botBusy=true;
+  const base=Number($("stake").value)||1,mg=Number($("martingale").value)||2;
+  const step=state.bot.lossStep||0;
+  const threshold=step===1?2:1;
+  const stake=step===1?base*mg:base;
+  const contract=$("contract").value==="DIGITUNDER"?"DIGITUNDER":"DIGITOVER";
+  try{
+    tape(`Sending ${contract==="DIGITOVER"?"OVER":"UNDER"} ${threshold} • $${stake.toFixed(2)} • 1 tick`);
+    const t=await executeDemoTrade(contract,stake,threshold);
+    state.bot.trades++;
+    if(t.win){state.bot.wins++;state.bot.pl+=t.profit;state.bot.lossStep=0;state.bot.nextStake=base}
+    else{state.bot.losses++;state.bot.pl+=t.profit;state.bot.lossStep=state.bot.lossStep===0?1:0;state.bot.nextStake=state.bot.lossStep===1?base*mg:base}
+    updateStats();tape(`${t.win?"WIN":"LOSS"} • ${t.profit>=0?"+":""}${t.profit.toFixed(2)} • next ${state.bot.lossStep===1?"Over 2 / $"+(base*mg).toFixed(2):"Over 1 / $"+base.toFixed(2)}`);
+    refreshBalance();
+  }catch(e){tape("Trade error • "+e.message);log("Bot stopped: "+e.message);stopBot();return}
+  state.botBusy=false;
+  if(state.botRunning)setTimeout(processNextLiveTrade,250);
+}
 function resetStats(){
   state.bot={trades:0,wins:0,losses:0,pl:0,nextStake:Number($("stake").value)||1,lossStep:0};
-  state.tradeBusy=false;state.lastTradeQuote=null;
   ["btTrades","btWins","btLosses"].forEach(id=>$(id).textContent="0");$("btPL").textContent="0.00";$("tape").innerHTML="";
 }
 function updateStats(){
   $("btTrades").textContent=state.bot.trades;$("btWins").textContent=state.bot.wins;$("btLosses").textContent=state.bot.losses;$("btPL").textContent=state.bot.pl.toFixed(2);
 }
-async function botTick(){
-  if(!state.botRunning||state.bot.inFlight)return;
-  state.bot.inFlight=true;
-  const stake=Number(state.bot.nextStake)||Number($("stake").value)||1;
-  const barrier=state.bot.lossStep===1?2:1;
-  try{
-    log("Sending DEMO proposal: Over "+barrier+" • stake $"+stake.toFixed(2));
-    const c=await realDemoTrade(stake,barrier);
-    const profit=Number(c.profit||0); state.bot.trades++;
-    if(profit>0){state.bot.wins++;state.bot.pl+=profit;state.bot.nextStake=Number($("stake").value)||1;state.bot.lossStep=0;}
-    else{state.bot.losses++;state.bot.pl+=profit;state.bot.lossStep++;state.bot.nextStake=state.bot.lossStep===1?stake*Number($("martingale").value||2):Number($("stake").value)||1;}
-    updateStats(); log((profit>0?"WIN":"LOSS")+" • actual DEMO P/L "+profit.toFixed(2),profit>0);
-    refreshBalance();
-  }catch(e){log("DEMO trade error: "+e.message);}
-  finally{state.bot.inFlight=false;}
+function botTick(){
+  if(!state.botRunning)return;
+  const d=state.digits[state.digits.length-1];if(d==null)return;
+  const contract=$("contract").value, threshold=Number($("threshold").value);
+  const stake=Number(state.bot.nextStake)||1;
+  let win;
+  if(contract==="DIGITOVER")win=d>threshold;
+  else if(contract==="DIGITUNDER")win=d<threshold;
+  else if(contract==="CALL")win=state.prices.length>1&&state.prices.at(-1)>state.prices.at(-2);
+  else win=state.prices.length>1&&state.prices.at(-1)<state.prices.at(-2);
+  state.bot.trades++;
+  if(win){state.bot.wins++;state.bot.pl+=stake*0.0;state.bot.nextStake=Number($("stake").value)||1;state.bot.lossStep=0}
+  else{state.bot.losses++;state.bot.pl-=stake;state.bot.lossStep++;state.bot.nextStake=state.bot.lossStep===1?stake*Number($("martingale").value):Number($("stake").value)||1}
+  updateStats();
 }
-
-function startBot(){
-  if(state.botRunning){stopBot();return}
-  if(!state.account||!state.account.is_demo){log("Connect a DEMO account before running.");return}
-  resetStats();state.botRunning=true;$("builderRun").textContent="■ Stop Bot";$("bottomRun").textContent="■ Stop";$("builderStatus").textContent="Bot running • REAL DEMO contracts";$("bottomStatus").textContent="Bot is running • DEMO";
-  state.botTimer=setInterval(()=>{botTick().catch(()=>{})},500);
-  botTick().catch(()=>{});
-}
+function startBot(){runLiveBot()}
 function stopBot(){
-  state.botRunning=false;clearInterval(state.botTimer);state.botTimer=null;state.tradeBusy=false;$("builderRun").textContent="▶ Run Bot";$("bottomRun").textContent="▶ Run";$("builderStatus").textContent="Bot is not running";$("bottomStatus").textContent="Bot is not running";
+  state.botRunning=false;clearInterval(state.botTimer);state.botTimer=null;state.botBusy=false;$("builderRun").textContent="▶ Run Bot";$("bottomRun").textContent="▶ Run";$("builderStatus").textContent="Bot is not running";$("bottomStatus").textContent="Bot is not running";
 }
 $("builderRun").onclick=startBot;$("bottomRun").onclick=startBot;$("builderReset").onclick=()=>{stopBot();resetStats()};
 $("hedgeBtn").onclick=()=>{$("hedgeStatus").textContent=state.quote?"DEMO hedge preview ready at "+Number(state.quote).toFixed(2):"Waiting for live quote."};
@@ -479,14 +603,34 @@ const botTemplates=[
 $("botCards").innerHTML=botTemplates.map((b,i)=>`<div class="botCard"><span class="tag">${b[2]==="premium"?"PREMIUM":"FREE"}</span><h2>${b[0]}</h2><p>${b[1]}</p><button class="load" data-template="${i}">LOAD BOT</button></div>`).join("");
 document.querySelectorAll("[data-template]").forEach(b=>b.onclick=()=>{const t=botTemplates[Number(b.dataset.template)];navTo("builder");if(t[0].includes("Over 1")){$("contract").value="DIGITOVER";$("threshold").value=1;$("martingale").value=2;$("duration").value=1;$("stake").value=1} $("builderLog").textContent="Loaded: "+t[0]+" — DEMO testing only.";});
 
-function historicalBacktest(){
-  const sample=state.digits.slice();
-  if(sample.length<10){alert("Wait for at least 10 live digits first.");return}
-  let wins=0,losses=0,pl=0,stake=Number($("stake").value)||1,mg=Number($("martingale").value)||2,step=0;
-  sample.forEach(d=>{const win=d>1;if(win){wins++;pl+=stake*0.9;stake=Number($("stake").value)||1;step=0}else{losses++;pl-=stake;step++;stake=step===1?stake*mg:Number($("stake").value)||1}});
-  alert(`Sample backtest on ${sample.length} received ticks\\nWins: ${wins}\\nLosses: ${losses}\\nWin rate: ${(wins/sample.length*100).toFixed(1)}%\\nApprox P/L: ${pl.toFixed(2)}\\nThis is a live-sample simulation, not a guarantee.`);
+async function getHistoricalTicks(symbol,count){
+  return await new Promise((resolve,reject)=>{
+    const ws=new WebSocket(OLD_WS);let done=false;
+    const timer=setTimeout(()=>{try{ws.close()}catch(e){};if(!done){done=true;reject(new Error("Historical data timeout"))}},12000);
+    ws.onopen=()=>ws.send(JSON.stringify({ticks_history:symbol,adjust_start_time:1,count:Number(count),end:"latest",start:1,style:"ticks"}));
+    ws.onmessage=e=>{try{const d=JSON.parse(e.data);if(d.history&&Array.isArray(d.history.prices)){done=true;clearTimeout(timer);ws.close();resolve(d.history.prices.map(Number))}else if(d.error){done=true;clearTimeout(timer);ws.close();reject(new Error(d.error.message||"Historical data error"))}}catch(err){}};
+    ws.onerror=()=>{clearTimeout(timer);if(!done){done=true;reject(new Error("Historical data connection failed"))}};
+  });
 }
-
+async function historicalBacktest(){
+  const status=$("historicalStatus"),tapeEl=$("hbTape");
+  status.textContent="Loading historical ticks…";tapeEl.innerHTML="";
+  try{
+    const prices=await getHistoricalTicks($("btMarket").value,Number($("btCount").value)||1000);
+    const digits=prices.map(lastDigit);
+    const base=Number($("stake").value)||1,mg=Number($("martingale").value)||2,payout=Number($("btPayout").value)||0.9;
+    let wins=0,losses=0,pl=0,step=0,maxDD=0,peak=0,lossStreak=0,longestLoss=0;
+    digits.forEach(d=>{
+      const threshold=step===1?2:1,stake=step===1?base*mg:base,win=d>threshold;
+      if(win){wins++;pl+=stake*payout;step=0;lossStreak=0}else{losses++;pl-=stake;step=step===0?1:0;lossStreak++;longestLoss=Math.max(longestLoss,lossStreak)}
+      peak=Math.max(peak,pl);maxDD=Math.max(maxDD,peak-pl);
+    });
+    $("hbTrades").textContent=wins+losses;$("hbWins").textContent=wins;$("hbLosses").textContent=losses;$("hbPL").textContent=pl.toFixed(2);
+    status.textContent=`Completed ${digits.length} historical ticks • Win rate ${(wins/(wins+losses)*100).toFixed(1)}% • Max drawdown ${maxDD.toFixed(2)} • Longest losing streak ${longestLoss}.`;
+    ["First 10 digits: "+digits.slice(0,10).join(", "),`Rule: Over 1 → after loss Over 2 at ${mg}× → reset after second loss or win`,"Payout used: "+(payout*100).toFixed(0)+"% (approximation only)","Historical results do not guarantee future results."].forEach(x=>{const row=document.createElement("div");row.className="status";row.textContent=x;tapeEl.appendChild(row)});
+  }catch(e){status.textContent="Backtest failed: "+e.message}
+}
+$("historicalBtn").onclick=historicalBacktest;
 async function init(){
   $("greeting").textContent="Good "+(new Date().getHours()<12?"morning":new Date().getHours()<18?"afternoon":"evening");
   $("accountStatus").textContent="Checking connection…";
