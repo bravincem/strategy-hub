@@ -67,6 +67,7 @@ label{display:block;font-size:12px;color:#7f91a7;font-weight:800;margin-bottom:6
 <section id="dashboard" class="view active">
   <div class="hero"><h1 id="greeting">Good morning</h1><p>"The only limit to our realization of tomorrow will be our doubts of today."</p></div>
   <div class="sectionTitle"><h2>QUICK ACTIONS</h2><span class="pill" id="connPill">NOT CONNECTED</span></div>
+      <div id="connectionDiag" class="notice" style="margin:10px 0;display:none;white-space:pre-wrap;word-break:break-word"></div>
   <div class="grid">
     <div class="card"><div class="icon">♛</div><h3>Premium Bots</h3><p>Explore strategy templates and load them into the builder.</p><div class="link" data-go="free">Explore bots ↗</div></div>
     <div class="card"><div class="icon">⇧</div><h3>Upload Bot</h3><p>Load a local XML strategy file and inspect its contents.</p><div class="link" id="xmlBtn">Import XML ↗</div><input id="xmlFile" type="file" accept=".xml" hidden></div>
@@ -200,7 +201,7 @@ label{display:block;font-size:12px;color:#7f91a7;font-weight:800;margin-bottom:6
 
 <div class="bottom"><button class="runBtn" id="bottomRun">▶ Run</button><div class="bottomStatus" id="bottomStatus">Bot is not running</div><div class="bottomRight">Open transaction</div></div>
 
-<div class="modal" id="modal"><div class="modalBox"><button class="close" id="closeModal">×</button><h2 id="modalTitle">API Token</h2><p class="status">For this one-file build, OAuth is preferred. Manual tokens are kept only in this browser session and are never displayed back to the page.</p><input class="field" id="manualToken" placeholder="Paste DEMO token only"><button class="btn" style="margin-top:12px" id="manualConnect">Connect token</button><div class="notice" style="margin-top:12px">Never paste a client secret, password or OTP here.</div></div></div>
+<div class="modal" id="modal"><div class="modalBox"><button class="close" id="closeModal">×</button><h2 id="modalTitle">Connect DEMO Account</h2><p class="status">Use a DEMO API token. The token is used only in this browser session and is not saved to the site or sent to our server.</p><input class="field" id="manualToken" type="password" autocomplete="off" placeholder="Paste DEMO API token"><button class="btn green" style="margin-top:12px;width:100%" id="manualConnect">Connect DEMO</button><button class="btn secondary" style="margin-top:10px;width:100%" id="oauthConnect">Use Deriv Login instead</button><div class="notice" style="margin-top:12px">Never paste a client secret, password or OTP here.</div></div></div>
 
 <script>
 /* CONNECTION BOOTSTRAP: capture OAuth session before the Hub app starts. */
@@ -218,7 +219,7 @@ label{display:block;font-size:12px;color:#7f91a7;font-weight:800;margin-bottom:6
 
 const API_BASE = "https://deriv-strategy-api.bravincem.workers.dev";
 const PUBLIC_WS = "wss://api.derivws.com/trading/v1/options/ws/public";
-const OLD_WS = "wss://ws.derivws.com/websockets/v3?app_id=1089";
+const OLD_WS = "wss://ws.binaryws.com/websockets/v3?app_id=1089";
 
 const $ = id => document.getElementById(id);
 const state = {
@@ -328,32 +329,99 @@ $("qMarket").addEventListener("change",e=>setMarket(e.target.value));
 async function oauthLogin(){
   window.location.href=API_BASE+"/auth/start";
 }
-$("loginBtn").onclick=oauthLogin;
-$("copyDemo").onclick=oauthLogin;
+// The old hosted OAuth worker has been the failing part of this build.\n// Open the direct DEMO connection panel first so the user can connect without\n// depending on that worker. OAuth remains available as a fallback.\n$("loginBtn").onclick=showModal;
+$("copyDemo").onclick=showModal;
 
 function showModal(){ $("modal").classList.add("show"); }
 $("tokenBtn").onclick=showModal;
+$("oauthConnect").onclick=oauthLogin;
 $("closeModal").onclick=()=>$("modal").classList.remove("show");
 
 async function connectManualToken(token){
-  if(!token)return alert("Enter a DEMO token.");
-  $("manualConnect").disabled=true;
+  if(!token){
+    alert("Paste your DEMO API token first.");
+    return;
+  }
+  const btn=$("manualConnect");
+  btn.disabled=true;
+  btn.textContent="Connecting…";
   try{
-    const ws=new WebSocket(OLD_WS);state.authWs=ws;
-    ws.onopen=()=>ws.send(JSON.stringify({authorize:token}));
-    ws.onmessage=async e=>{
-      const d=JSON.parse(e.data);
+    const ws=new WebSocket(OLD_WS);
+    state.authWs=ws;
+    const timeout=setTimeout(()=>{
+      try{ws.close()}catch(e){}
+      if(!state.connected) log("Connection timed out. Check the DEMO token and internet connection.");
+    },10000);
+
+    ws.onopen=()=>ws.send(JSON.stringify({authorize:token,req_id:1}));
+
+    ws.onmessage=e=>{
+      let d;
+      try{d=JSON.parse(e.data)}catch{return}
+
       if(d.msg_type==="authorize"){
-        state.account={id:d.authorize.loginid,currency:d.authorize.currency,balance:Number(d.authorize.balance),is_demo:String(d.authorize.loginid).startsWith("VRTC")||String(d.authorize.loginid).startsWith("VR")};
+        clearTimeout(timeout);
+        const a=d.authorize||{};
+        const id=String(a.loginid||"");
+        const isDemo=/^(VRTC|VRT|VR)/i.test(id);
+
+        if(!isDemo){
+          log("Token connected, but it is not a DEMO account. Use a DEMO token.");
+          try{ws.close()}catch(e){}
+          return;
+        }
+
+        // Keep the token only in the live WebSocket object. Never put it in
+        // localStorage, the URL, or our backend.
+        state.account={
+          id,
+          currency:a.currency||"USD",
+          balance:Number(a.balance)||0,
+          is_demo:true
+        };
         state.balance=state.account.balance;
-        $("accountId").textContent=state.account.id;$("balance").textContent=state.account.currency+" "+state.balance.toFixed(2);
-        setConn(true);$("modal").classList.remove("show");log("DEMO token connected.",true);
-        ws.send(JSON.stringify({balance:1,subscribe:1}));
-      } else if(d.msg_type==="balance"){state.balance=Number(d.balance.balance);$("balance").textContent=d.balance.currency+" "+state.balance.toFixed(2)}
-      else if(d.error){alert(d.error.message);ws.close()}
+        $("accountId").textContent=state.account.id;
+        $("balance").textContent=state.account.currency+" "+state.balance.toFixed(2);
+        setConn(true);
+        $("modal").classList.remove("show");
+        log("DEMO account connected ✓",true);
+
+        ws.send(JSON.stringify({balance:1,subscribe:1,req_id:2}));
+        ws.send(JSON.stringify({ticks:state.market,subscribe:1,req_id:3}));
+      }else if(d.msg_type==="balance"){
+        const b=Number(d.balance?.balance);
+        if(Number.isFinite(b)){
+          state.balance=b;
+          $("balance").textContent=(d.balance.currency||state.account?.currency||"USD")+" "+b.toFixed(2);
+        }
+      }else if(d.error){
+        clearTimeout(timeout);
+        const msg=d.error.message||"Deriv rejected the token.";
+        log("Connection failed: "+msg);
+        try{ws.close()}catch(e){}
+      }
     };
-    ws.onerror=()=>alert("Token connection failed.");
-  }finally{setTimeout(()=>$("manualConnect").disabled=false,800)}
+
+    ws.onerror=()=>{
+      clearTimeout(timeout);
+      if(!state.connected) log("Connection failed. Deriv could not open the authenticated connection.");
+    };
+
+    ws.onclose=()=>{
+      clearTimeout(timeout);
+      if(state.connected){
+        setConn(false);
+        log("DEMO connection closed. Press Log In to reconnect.");
+      }
+    };
+  }catch(e){
+    log("Connection error: "+(e.message||e));
+  }finally{
+    setTimeout(()=>{
+      btn.disabled=false;
+      btn.textContent="Connect DEMO";
+    },800);
+  }
 }
 $("manualConnect").onclick=()=>connectManualToken($("manualToken").value.trim());
 
@@ -362,32 +430,49 @@ async function handleOAuthReturn(){
   const returned=window.__DERIV_OAUTH_SESSION__ || p.get("session") || p.get("sid") || p.get("session_id") || "";
   const saved=localStorage.getItem("deriv_strategy_session") || "";
   const sessionId=returned || saved;
+  const diag=$("connectionDiag");
+  const showDiag=(msg,ok=false)=>{
+    if(!diag)return;
+    diag.style.display="block";
+    diag.className="notice "+(ok?"ok":"warn");
+    diag.textContent=msg;
+  };
+  const mask=(v)=>v?String(v).slice(0,8)+"…"+String(v).slice(-4):"none";
 
-  if(returned){ localStorage.setItem("deriv_strategy_session",returned); }
-  state.sessionId=sessionId;
-
-  if(!sessionId){
+  if(returned){
+    try{localStorage.setItem("deriv_strategy_session",returned);}catch(e){}
+    showDiag("STEP 1/4  OAuth session received: "+mask(returned));
+  }else if(saved){
+    showDiag("STEP 1/4  Saved Deriv session found: "+mask(saved));
+  }else{
     setConn(false);
+    showDiag("STEP 1/4  No Deriv session was received. Click Log In.");
     log("Not connected. Click Log In to connect your DEMO account.");
     return false;
   }
-
-  log("Deriv login returned. Connecting DEMO account…");
+  state.sessionId=sessionId;
+  showDiag("STEP 2/4  Session saved. Contacting the Deriv account service…");
+  log("Deriv session received. Checking DEMO account…");
 
   const attempts=[
-    {name:"Bearer session", headers:{"Authorization":"Bearer "+sessionId,"Content-Type":"application/json"}},
-    {name:"Session header", headers:{"X-Deriv-Session":sessionId,"Content-Type":"application/json"}}
+    {name:"Bearer",headers:{"Authorization":"Bearer "+sessionId,"Content-Type":"application/json"}},
+    {name:"X-Deriv-Session",headers:{"X-Deriv-Session":sessionId,"Content-Type":"application/json"}},
+    {name:"X-Session-ID",headers:{"X-Session-ID":sessionId,"Content-Type":"application/json"}},
+    {name:"Cookie/session",headers:{"Content-Type":"application/json"}}
   ];
-
-  let lastError="Unknown connection error";
+  let lastError="No response";
+  let lastHttp="";
   for(const attempt of attempts){
     try{
+      showDiag("STEP 3/4  Trying account service…\nMethod: "+attempt.name);
       const r=await fetch(API_BASE+"/api/accounts",{method:"GET",headers:attempt.headers,credentials:"include",cache:"no-store"});
       const raw=await r.text();
+      lastHttp=String(r.status);
       let d;
-      try{d=JSON.parse(raw)}catch{throw new Error("Account API returned non-JSON (HTTP "+r.status+")");}
-      if(!r.ok || d.ok===false) throw new Error(d.error||d.message||("Account request failed (HTTP "+r.status+")"));
-
+      try{d=JSON.parse(raw)}catch{throw new Error("HTTP "+r.status+" — account service returned non-JSON");}
+      if(!r.ok || d.ok===false){
+        throw new Error("HTTP "+r.status+" — "+(d.error||d.message||"account request rejected"));
+      }
       const rawAccounts=Array.isArray(d.accounts)?d.accounts:(Array.isArray(d.data?.accounts)?d.data.accounts:(Array.isArray(d.data)?d.data:[]));
       state.accounts=rawAccounts.map(a=>{
         const id=a.id||a.account_id||a.accountId||a.loginid;
@@ -395,28 +480,28 @@ async function handleOAuthReturn(){
         const currency=a.currency||a.account_currency||"USD";
         const rawBalance=typeof a.balance==="object"&&a.balance!==null?a.balance.balance:a.balance;
         const balance=Number(rawBalance);
-        const demo=Boolean(a.is_demo??a.isDemo??a.demo??(typeof id==="string"&&/^(VRT|VR|DOT)/i.test(id)));
+        const demo=Boolean(a.is_demo??a.isDemo??a.demo??(typeof id==="string"&&/^(VRTC|VRT|VR|DOT)/i.test(id)));
         return {id,currency,balance:Number.isFinite(balance)?balance:0,is_demo:demo};
       }).filter(Boolean);
-
+      if(!state.accounts.length)throw new Error("HTTP "+r.status+" — service returned 0 accounts");
       const demo=state.accounts.find(a=>a.is_demo);
-      if(!demo) throw new Error("Deriv responded, but no DEMO account was found.");
-
+      if(!demo)throw new Error("HTTP "+r.status+" — accounts returned, but no DEMO account was identified");
       state.account=demo;
       state.balance=demo.balance;
       state.sessionId=sessionId;
       setConn(true);
       $("accountId").textContent=demo.id;
       $("balance").textContent=(demo.currency||"USD")+" "+Number(demo.balance||0).toFixed(2);
+      showDiag("STEP 4/4  DEMO CONNECTED ✓\nAccount: "+demo.id+"\nBalance: "+(demo.currency||"USD")+" "+Number(demo.balance||0).toFixed(2),true);
       log("DEMO account connected.",true);
-      if(location.search) history.replaceState({},document.title,location.pathname+location.hash);
+      if(location.search)history.replaceState({},document.title,location.pathname+location.hash);
       return true;
     }catch(e){
       lastError=e.message||String(e);
     }
   }
-
   setConn(false);
+  showDiag("CONNECTION STOPPED\nLast HTTP: "+(lastHttp||"none")+"\nReason: "+lastError+"\n\nThe Hub received the OAuth session, but the account service did not accept it. No password, OTP or secret is needed.");
   log("Connection failed: "+lastError);
   return false;
 }
